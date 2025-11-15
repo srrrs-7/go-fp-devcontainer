@@ -6,5 +6,11 @@ dictionaryDefinitions: []
 dictionaries: []
 words:
   - anthropics
+  - bluemonday
+  - coverprofile
   - DB_DBNAME
   - healthcheck
+  - isready
+  - ldflags
+  - mydb
+  - pkgs

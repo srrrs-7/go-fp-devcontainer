@@ -4,6 +4,7 @@ FROM mcr.microsoft.com/devcontainers/base:2-trixie
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
+    make \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Bun as vscode user

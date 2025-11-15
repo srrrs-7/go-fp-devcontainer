@@ -1,0 +1,25 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/.images/Dockerfile
+    ports:
+      - "3000:80"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/.images/Dockerfile
+    ports:
+      - 8080:8080
+  
+  db:
+    image: postgres:18
+    volumes:
+      - pg-data:/var/lib/postgresql
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mydb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
