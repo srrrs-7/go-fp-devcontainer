@@ -1,0 +1,10 @@
+version: "0.2"
+ignorePaths:
+  - .git
+  - .gitignore
+dictionaryDefinitions: []
+dictionaries: []
+words:
+  - anthropics
+  - DB_DBNAME
+  - healthcheck
