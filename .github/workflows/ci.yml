@@ -32,16 +32,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
       - name: Setup devcontainer compose override
         run: cp .devcontainer/compose.override.yaml.sample .devcontainer/compose.override.yaml
 
@@ -52,9 +42,5 @@ jobs:
           cacheFrom: ghcr.io/${{ github.repository }}/devcontainer
           push: always
           runCmd: |
-            bun run ci
-            bun run db:generate
-            bun run db:migrate:deploy
-            bun run check
-            bun run build:ws
-            bun run test:run
+            make vet
+            make test

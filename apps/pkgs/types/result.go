@@ -24,29 +24,6 @@ func (r Result[T, E]) IsErr() bool {
 	return r.err != nil
 }
 
-// 値の取得
-func (r Result[T, E]) Unwrap() (T, *E) {
-	if r.err != nil {
-		var zero T
-		return zero, r.err
-	}
-	return *r.value, nil
-}
-
-func (r Result[T, E]) UnwrapOr(defaultValue T) T {
-	if r.err != nil {
-		return defaultValue
-	}
-	return *r.value
-}
-
-func (r Result[T, E]) UnwrapOrElse(fn func(E) T) T {
-	if r.err != nil {
-		return fn(*r.err)
-	}
-	return *r.value
-}
-
 // Map系メソッド
 func Map[T, U, E any](r Result[T, E], fn func(T) U) Result[U, E] {
 	if r.err != nil {
@@ -67,11 +44,6 @@ func FlatMap[T, U, E any](r Result[T, E], fn func(T) Result[U, E]) Result[U, E] 
 		return Err[U](*r.err)
 	}
 	return fn(*r.value)
-}
-
-// AndThen - FlatMapのエイリアス（チェーン可能な操作）
-func (r Result[T, E]) AndThen(fn func(T) Result[T, E]) Result[T, E] {
-	return FlatMap(r, fn)
 }
 
 // AndThenMap - 型変換を伴うAndThen

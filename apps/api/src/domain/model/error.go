@@ -1,5 +1,7 @@
 package model
 
+import "fmt"
+
 const (
 	NotFoundErrorName       = "NotFoundError"
 	ValidationErrorName     = "ValidationError"
@@ -10,6 +12,14 @@ const (
 	ForbiddenErrorName      = "ForbiddenError"
 	DatabaseErrorName       = "DatabaseError"
 )
+
+// AppError - アプリケーション共通のエラーインターフェース
+type AppError interface {
+	error
+	ErrorName() string
+	DomainName() string
+	Unwrap() error
+}
 
 type baseErr struct {
 	errName    string
@@ -25,7 +35,16 @@ func (e baseErr) DomainName() string {
 	return e.domainName
 }
 
-func (e baseErr) Error() error {
+// Error - errorインターフェースを実装
+func (e baseErr) Error() string {
+	if e.err != nil {
+		return fmt.Sprintf("%s [%s]: %v", e.errName, e.domainName, e.err)
+	}
+	return fmt.Sprintf("%s [%s]", e.errName, e.domainName)
+}
+
+// Unwrap - エラーチェーンのサポート
+func (e baseErr) Unwrap() error {
 	return e.err
 }
 

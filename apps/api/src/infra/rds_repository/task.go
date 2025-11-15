@@ -5,8 +5,8 @@ import (
 	"utils/types"
 )
 
-func FindTaskByID(id model.TaskID) types.Result[model.Task, model.DatabaseError] {
-	return types.Ok[model.Task, model.DatabaseError](model.Task{
+func FindTaskByID(id model.TaskID) types.Result[model.Task, model.AppError] {
+	return types.Ok[model.Task, model.AppError](model.Task{
 		ID:          id,
 		Title:       "Sample Task",
 		Description: "This is a sample task description.",
