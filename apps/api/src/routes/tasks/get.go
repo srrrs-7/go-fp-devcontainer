@@ -8,14 +8,14 @@ import (
 	"utils/types"
 )
 
-type view struct {
+type getResponse struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Completed   bool   `json:"completed"`
 }
 
-func Handler(w http.ResponseWriter, r *http.Request) {
+func GetHandler(w http.ResponseWriter, r *http.Request) {
 	// 関数チェーン: Validate -> FlatMap(FindTask) -> Map(ToView)
 	res := types.Map(
 		types.FlatMap(
@@ -24,8 +24,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				return task_repository.FindTaskByID(model.NewTaskID(req.ID))
 			},
 		),
-		func(task model.Task) view {
-			return view{
+		func(task model.Task) getResponse {
+			return getResponse{
 				ID:          task.ID.String(),
 				Title:       task.Title.String(),
 				Description: task.Description.String(),
@@ -35,7 +35,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	res.Match(
-		func(resp view) {
+		func(resp getResponse) {
 			response.OK(w)
 		},
 		func(e model.AppError) {
