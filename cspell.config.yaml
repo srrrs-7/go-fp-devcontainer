@@ -14,3 +14,4 @@ words:
   - ldflags
   - mydb
   - pkgs
+  - sqlc

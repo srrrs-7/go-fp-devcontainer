@@ -1,7 +1,7 @@
 {
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "serena",
     "chrome-devtools"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
