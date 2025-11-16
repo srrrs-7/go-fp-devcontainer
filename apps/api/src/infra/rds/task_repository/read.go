@@ -1,4 +1,4 @@
-package rds_repository
+package task_repository
 
 import (
 	"api/src/domain/model"

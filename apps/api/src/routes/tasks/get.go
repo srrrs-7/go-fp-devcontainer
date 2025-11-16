@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"api/src/domain/model"
-	"api/src/infra/rds_repository"
+	"api/src/infra/rds/task_repository"
 	"api/src/routes/response"
 	"net/http"
 	"utils/types"
@@ -21,7 +21,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		types.FlatMap(
 			newGetRequest(r).validate(),
 			func(req getRequest) types.Result[model.Task, model.AppError] {
-				return rds_repository.FindTaskByID(model.NewTaskID(req.ID))
+				return task_repository.FindTaskByID(model.NewTaskID(req.ID))
 			},
 		),
 		func(task model.Task) view {
