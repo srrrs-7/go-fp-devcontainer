@@ -16,7 +16,6 @@ type getResponse struct {
 }
 
 func GetHandler(w http.ResponseWriter, r *http.Request) {
-	// 関数チェーン: Validate -> FlatMap(FindTask) -> Map(ToView)
 	res := types.Map(
 		types.FlatMap(
 			newGetRequest(r).validate(),
