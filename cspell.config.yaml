@@ -9,6 +9,7 @@ words:
   - bluemonday
   - coverprofile
   - DB_DBNAME
+  - DBTX
   - healthcheck
   - isready
   - ldflags

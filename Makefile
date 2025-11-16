@@ -51,3 +51,22 @@ env:
 	for mod in $(MODS); do \
 		(cd $$mod && go env); \
 	done
+
+########
+# sqlc #
+########
+DB_MOD = ./apps/pkgs/db
+
+.PHONY: sqlc-gen sqlc-gen sqlc-compile sqlc-verify sqlc-help
+
+sqlc-gen:
+	cd ${DB_MOD} && sqlc generate
+
+sqlc-compile:
+	cd ${DB_MOD} && sqlc compile
+
+sqlc-verify:
+	cd ${DB_MOD} && sqlc verify
+
+sqlc-help:
+	cd ${DB_MOD} && sqlc help
