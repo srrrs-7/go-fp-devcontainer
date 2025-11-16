@@ -36,6 +36,90 @@ db/
 - `DB_USERNAME`: データベースユーザー（例: `postgres`）
 - `DB_PASSWORD`: データベースパスワード
 
+## PostgreSQL への接続
+
+### devcontainer 内から接続
+
+```bash
+# 接続文字列を使用
+psql "postgresql://postgres:postgres@db:5432/mydb"
+
+# または個別オプションで指定
+psql -h db -p 5432 -U postgres -d mydb
+```
+
+### ホストマシンから接続
+
+```bash
+# 接続文字列を使用
+psql "postgresql://postgres:postgres@localhost:5432/mydb"
+
+# または個別オプションで指定
+psql -h localhost -p 5432 -U postgres -d mydb
+
+# パスワード入力なし（環境変数使用）
+PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d mydb
+```
+
+### JDBC 接続文字列
+
+```
+jdbc:postgresql://localhost:5432/mydb
+ユーザー名: postgres
+パスワード: postgres
+```
+
+## PostgreSQL コマンド (psql)
+
+### よく使うメタコマンド
+
+```sql
+-- データベース情報
+\l              -- データベース一覧
+\c dbname       -- データベースに接続
+
+-- テーブル・スキーマ
+\dt             -- テーブル一覧
+\dt+            -- テーブル一覧（詳細情報付き）
+\dt *.*         -- すべてのスキーマのテーブル一覧
+\d tablename    -- テーブル構造を表示
+
+-- その他のオブジェクト
+\dv             -- ビュー一覧
+\di             -- インデックス一覧
+\ds             -- シーケンス一覧
+\df             -- 関数一覧
+\du             -- ユーザー/ロール一覧
+
+-- ヘルプ・終了
+\?              -- メタコマンド一覧
+\h              -- SQL コマンドのヘルプ
+\q              -- psql 終了
+```
+
+### SQL クエリでテーブル一覧を取得
+
+```sql
+-- カレントスキーマのテーブル一覧
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public';
+
+-- テーブル名とスキーマ
+SELECT schemaname, tablename
+FROM pg_tables
+WHERE schemaname NOT IN ('pg_catalog', 'information_schema');
+
+-- テーブルのサイズを確認
+SELECT
+    schemaname,
+    tablename,
+    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+```
+
 ## マイグレーションワークフロー
 
 ### 1. スキーマファイルの編集
