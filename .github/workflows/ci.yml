@@ -33,7 +33,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup devcontainer compose override
-        run: cp .devcontainer/compose.override.yaml.sample .devcontainer/compose.override.yaml
+        run: cp .devcontainer/compose.override.yaml.example .devcontainer/compose.override.yaml
 
       - name: Run CI in devcontainer
         uses: devcontainers/ci@v0.3
