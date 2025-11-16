@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: apps/web/.images/Dockerfile
     ports:
-      - "3000:80"
+      - 3000:80
 
   api:
     build:
@@ -17,6 +17,8 @@ services:
     image: postgres:18
     volumes:
       - pg-data:/var/lib/postgresql
+    ports:
+      - 5432:5432
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d mydb"]
