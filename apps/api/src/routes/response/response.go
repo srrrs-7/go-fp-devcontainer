@@ -2,22 +2,34 @@ package response
 
 import (
 	"api/src/domain/model"
+	"encoding/json"
 	"net/http"
 )
 
-func OK(w http.ResponseWriter) {
+func OK(w http.ResponseWriter, body any) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
-func Created(w http.ResponseWriter) {
+func Created(w http.ResponseWriter, body any) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("Created"))
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func Accepted(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func NoContent(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
-	w.Write([]byte("NoContent"))
 }
 
 // handleAppError - AppErrorを網羅的に処理し、適切なHTTPレスポンスを返す
@@ -26,57 +38,72 @@ func HandleAppError(w http.ResponseWriter, err model.AppError) {
 
 	switch errName {
 	case model.ValidationErrorName:
-		badRequest(w)
+		badRequest(w, err)
 	case model.NotFoundErrorName:
-		notFound(w)
+		notFound(w, err)
 	case model.UnauthorizedErrorName:
-		unauthorized(w)
+		unauthorized(w, err)
 	case model.ForbiddenErrorName:
-		forbidden(w)
+		forbidden(w, err)
 	case model.BadRequestErrorName:
-		badRequest(w)
+		badRequest(w, err)
 	case model.ConflictErrorName:
-		conflict(w)
+		conflict(w, err)
 	case model.DatabaseErrorName:
-		internalError(w)
+		internalError(w, err)
 	case model.InternalServerErrorName:
-		internalError(w)
+		internalError(w, err)
 	default:
-		unexpectedError(w)
+		unexpectedError(w, err)
 	}
 }
 
-func badRequest(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusBadRequest)
-	w.Write([]byte("BadRequest"))
+type ErrorResponse struct {
+	Message string `json:"message"`
+	Type    string `json:"type"`
+	Domain  string `json:"domain"`
 }
 
-func notFound(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte("NotFound"))
+func newErrorResponse(err model.AppError) ErrorResponse {
+	return ErrorResponse{
+		Message: err.Error(),
+		Type:    err.ErrorName(),
+		Domain:  err.DomainName(),
+	}
 }
 
-func unauthorized(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusUnauthorized)
-	w.Write([]byte("Unauthorized"))
+func writeError(w http.ResponseWriter, status int, err model.AppError) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(newErrorResponse(err)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
-func internalError(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte("InternalError"))
+func badRequest(w http.ResponseWriter, err model.AppError) {
+	writeError(w, http.StatusBadRequest, err)
 }
 
-func forbidden(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusForbidden)
-	w.Write([]byte("Forbidden"))
+func notFound(w http.ResponseWriter, err model.AppError) {
+	writeError(w, http.StatusNotFound, err)
 }
 
-func conflict(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusConflict)
-	w.Write([]byte("Conflict"))
+func unauthorized(w http.ResponseWriter, err model.AppError) {
+	writeError(w, http.StatusUnauthorized, err)
 }
 
-func unexpectedError(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte("UnexpectedError"))
+func internalError(w http.ResponseWriter, err model.AppError) {
+	writeError(w, http.StatusInternalServerError, err)
+}
+
+func forbidden(w http.ResponseWriter, err model.AppError) {
+	writeError(w, http.StatusForbidden, err)
+}
+
+func conflict(w http.ResponseWriter, err model.AppError) {
+	writeError(w, http.StatusConflict, err)
+}
+
+func unexpectedError(w http.ResponseWriter, err model.AppError) {
+	writeError(w, http.StatusInternalServerError, err)
 }

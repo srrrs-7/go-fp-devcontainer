@@ -35,7 +35,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	res.Match(
 		func(resp getResponse) {
-			response.OK(w)
+			response.OK(w, resp)
 		},
 		func(e model.AppError) {
 			response.HandleAppError(w, e)
