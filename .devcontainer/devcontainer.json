@@ -6,11 +6,13 @@
 // - Use setup.personal.sh for personal setup such as dotfiles
 {
   "name": "go-fp",
-  "dockerComposeFile": ["compose.yaml", "compose.override.yaml"],
+  "dockerComposeFile": [
+    "compose.yaml",
+    "compose.override.yaml"
+  ],
   "service": "dev",
   "workspaceFolder": "/workspace/main",
   "remoteUser": "vscode",
-
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {},
@@ -18,7 +20,6 @@
       "version": "1.25"
     }
   },
-
   "customizations": {
     "vscode": {
       "extensions": [
@@ -28,14 +29,12 @@
       "settings": {
         "editor.formatOnSave": true,
         "[go]": {
-          "editor.defaultFormatter": "golang.go"
+          // "editor.defaultFormatter": "golang.go"
         }
       }
     }
   },
-
   "postCreateCommand": "chmod +x .devcontainer/setup.sh && .devcontainer/setup.sh",
-
   "forwardPorts": [
     3000, // frontend dev server
     8080, // backend server

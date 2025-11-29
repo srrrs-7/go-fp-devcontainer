@@ -5,11 +5,20 @@ import (
 	"net/http"
 )
 
-func OK(w http.ResponseWriter) {}
+func OK(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
 
-func Created(w http.ResponseWriter) {}
+func Created(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte("Created"))
+}
 
-func NoContent(w http.ResponseWriter) {}
+func NoContent(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNoContent)
+	w.Write([]byte("NoContent"))
+}
 
 // handleAppError - AppErrorを網羅的に処理し、適切なHTTPレスポンスを返す
 func HandleAppError(w http.ResponseWriter, err model.AppError) {
@@ -37,16 +46,37 @@ func HandleAppError(w http.ResponseWriter, err model.AppError) {
 	}
 }
 
-func badRequest(w http.ResponseWriter) {}
+func badRequest(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write([]byte("BadRequest"))
+}
 
-func notFound(w http.ResponseWriter) {}
+func notFound(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNotFound)
+	w.Write([]byte("NotFound"))
+}
 
-func unauthorized(w http.ResponseWriter) {}
+func unauthorized(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusUnauthorized)
+	w.Write([]byte("Unauthorized"))
+}
 
-func internalError(w http.ResponseWriter) {}
+func internalError(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte("InternalError"))
+}
 
-func forbidden(w http.ResponseWriter) {}
+func forbidden(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusForbidden)
+	w.Write([]byte("Forbidden"))
+}
 
-func conflict(w http.ResponseWriter) {}
+func conflict(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusConflict)
+	w.Write([]byte("Conflict"))
+}
 
-func unexpectedError(w http.ResponseWriter) {}
+func unexpectedError(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte("UnexpectedError"))
+}
