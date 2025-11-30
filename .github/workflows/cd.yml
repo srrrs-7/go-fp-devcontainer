@@ -1,0 +1,188 @@
+# CD Pipeline: Database Migration → Build → Deploy to ECS
+#
+# Trigger:
+#   - Push to main: Auto-deploy to dev
+#   - Manual (workflow_dispatch): Select environment (dev/stg/prd)
+#
+# Flow: migrate job (success) → deploy job
+#
+# Authentication:
+#   - AWS OIDC (no long-lived credentials)
+#   - RDS IAM Authentication (no stored DB passwords)
+#
+# Required GitHub Environments: dev, stg, prd
+#
+# Environment Variables (set per environment):
+#   - AWS_REGION: AWS region (e.g., ap-northeast-1)
+#   - AWS_ROLE_ARN: IAM Role ARN for OIDC authentication
+#   - DB_HOST: RDS endpoint
+#   - DB_PORT: Database port (e.g., 5432)
+#   - DB_DBNAME: Database name
+#   - DB_USERNAME: IAM auth database user
+#   - ECR_REPOSITORY_API: ECR repository name for API
+#   - CONTAINER_NAME_API: Container name in task definition
+#   - ECS_SERVICE_API: ECS service name
+#   - ECS_CLUSTER: ECS cluster name
+#
+# Required Files:
+#   - .aws/task-definition-api.json: ECS task definition template
+
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - stg
+          - prd
+
+# Prevent concurrent deployments to same environment
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  # ====================
+  # Set Environment
+  # ====================
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+    steps:
+      - name: Determine environment
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+          else
+            # Default to dev for push to main
+            echo "environment=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ====================
+  # Database Migration
+  # ====================
+  # Runs Atlas migrations before deployment.
+  # If migration fails, deployment is blocked.
+  migrate:
+    name: Database Migration (${{ needs.setup.outputs.environment }})
+    runs-on: ubuntu-latest
+    needs: setup
+    environment: ${{ needs.setup.outputs.environment }}
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Authenticate with AWS using OIDC (no stored credentials)
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # Generate temporary RDS auth token using IAM authentication
+      # Token is valid for 15 minutes and masked in logs
+      - name: Generate RDS auth token
+        id: rds-token
+        run: |
+          TOKEN=$(aws rds generate-db-auth-token \
+            --hostname ${{ vars.DB_HOST }} \
+            --port ${{ vars.DB_PORT }} \
+            --username ${{ vars.DB_USERNAME }} \
+            --region ${{ vars.AWS_REGION }})
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Atlas
+        uses: ariga/setup-atlas@v0
+
+      # Apply pending migrations using Atlas
+      - name: Run database migration
+        env:
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_PORT: ${{ vars.DB_PORT }}
+          DB_DBNAME: ${{ vars.DB_DBNAME }}
+          DB_USERNAME: ${{ vars.DB_USERNAME }}
+          DB_PASSWORD: ${{ steps.rds-token.outputs.token }}
+        working-directory: apps/pkgs/db
+        run: atlas migrate apply --env ci
+
+  # ====================
+  # Build and Deploy
+  # ====================
+  # Builds Docker image, pushes to ECR, and deploys to ECS Fargate.
+  # Only runs after successful migration.
+  deploy:
+    name: Build and Deploy (${{ needs.setup.outputs.environment }})
+    runs-on: ubuntu-latest
+    needs: [setup, migrate]
+    environment: ${{ needs.setup.outputs.environment }}
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Enable BuildKit for faster builds with layer caching
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build and push with git SHA tag for traceability
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/.images/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_API }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_API }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      # Update task definition with new image
+      - name: Render Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .aws/task-definition-api.json
+          container-name: ${{ vars.CONTAINER_NAME_API }}
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_API }}:${{ github.sha }}
+
+      # Deploy to ECS and wait for service stability
+      - name: Deploy to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ vars.ECS_SERVICE_API }}
+          cluster: ${{ vars.ECS_CLUSTER }}
+          wait-for-service-stability: true
