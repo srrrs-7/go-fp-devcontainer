@@ -111,7 +111,9 @@ iac/
 │   │   ├── main.tf                 # モジュール呼び出し
 │   │   ├── variables.tf            # 変数定義 (dev 用デフォルト値)
 │   │   ├── outputs.tf -> ../../shared/outputs.tf  # シンボリックリンク
-│   │   └── terraform.tfvars.example
+│   │   ├── terraform.tfvars.example
+│   │   ├── backend.hcl.example     # Backend 設定テンプレート
+│   │   └── backend.hcl             # Backend 設定 (要作成、gitignore 対象)
 │   ├── stg/                        # ステージング環境
 │   │   ├── main.tf
 │   │   ├── variables.tf            # 変数定義 (stg 用デフォルト値)
@@ -162,40 +164,34 @@ iac/
 
 ## 使用方法
 
-### 初期セットアップ
+### 前提条件
+
+- AWS CLI がインストール済みで認証情報が設定されていること
+- Terraform >= 1.0 がインストール済みであること
+- Terraform 状態ファイル用の S3 バケットが作成済みであること
+
+```bash
+# S3 バケットがない場合は作成
+aws s3 mb s3://your-terraform-state-bucket --region ap-northeast-1
+```
+
+### 1. Backend 設定 (S3)
+
+Terraform の状態ファイルを S3 に保存するための設定が必要です。
+
+#### 方法 A: backend.hcl ファイルを使用（推奨）
 
 ```bash
 cd apps/iac/environments/dev
 
-# terraform.tfvars を作成
-cp terraform.tfvars.example terraform.tfvars
-# 値を編集
+# backend.hcl を作成
+cp backend.hcl.example backend.hcl
 
-# Terraform 初期化
-terraform init
-
-# 実行計画の確認
-terraform plan
-
-# インフラ構築
-terraform apply
+# 値を編集（バケット名を変更）
+# bucket = "your-terraform-state-bucket"
 ```
 
-### Backend 設定 (S3)
-
-`main.tf` の backend ブロックを設定:
-
-```hcl
-backend "s3" {
-  bucket         = "your-terraform-state-bucket"
-  key            = "dev/terraform.tfstate"
-  region         = "ap-northeast-1"
-  encrypt        = true
-  dynamodb_table = "terraform-lock"
-}
-```
-
-または `-backend-config` オプションで指定:
+#### 方法 B: コマンドラインオプションで指定
 
 ```bash
 terraform init \
@@ -204,7 +200,7 @@ terraform init \
   -backend-config="region=ap-northeast-1"
 ```
 
-### 環境変数 (terraform.tfvars)
+### 2. 環境変数の設定 (terraform.tfvars)
 
 `terraform.tfvars.example` をコピーして値を設定:
 
@@ -234,6 +230,23 @@ cognito_logout_urls = [
   "http://localhost:3000",
   "https://dev.example.com"
 ]
+```
+
+### 3. Terraform 初期化とデプロイ
+
+```bash
+cd apps/iac/environments/dev
+
+# 方法 A を使用した場合
+terraform init -backend-config=backend.hcl
+
+# 方法 B を使用した場合は上記の -backend-config オプション付きコマンドを実行
+
+# 実行計画の確認
+terraform plan
+
+# インフラ構築
+terraform apply
 ```
 
 ## 主要な変数

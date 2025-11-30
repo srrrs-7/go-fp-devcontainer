@@ -17,3 +17,5 @@ words:
   - mydb
   - pkgs
   - sqlc
+  - tfstate
+  - tfvars
