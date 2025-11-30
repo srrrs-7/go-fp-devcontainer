@@ -18,6 +18,12 @@ variable "aws_region" {
   default     = "ap-northeast-1"
 }
 
+variable "aws_profile" {
+  description = "AWS CLI profile name"
+  type        = string
+  default     = null
+}
+
 # -----------------------------------------------------------------------------
 # VPC
 # -----------------------------------------------------------------------------

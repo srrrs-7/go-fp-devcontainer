@@ -1,6 +1,14 @@
 # ACM Module
 # Creates SSL/TLS certificates with DNS validation
 
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+    }
+  }
+}
+
 # -----------------------------------------------------------------------------
 # ACM Certificate
 # -----------------------------------------------------------------------------

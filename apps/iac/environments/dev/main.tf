@@ -26,7 +26,8 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
+  profile = var.aws_profile
 
   default_tags {
     tags = {
@@ -39,8 +40,9 @@ provider "aws" {
 
 # Provider for ACM certificates (must be us-east-1 for CloudFront)
 provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
+  alias   = "us_east_1"
+  region  = "us-east-1"
+  profile = var.aws_profile
 
   default_tags {
     tags = {
@@ -188,11 +190,11 @@ module "alb" {
 module "ecs" {
   source = "../../modules/ecs"
 
-  project        = var.project
-  environment    = var.environment
-  aws_region     = var.aws_region
-  service_name   = "api"
-  container_name = "api"
+  project         = var.project
+  environment     = var.environment
+  aws_region      = var.aws_region
+  service_name    = "api"
+  container_name  = "api"
   container_image = "${module.ecr_api.repository_url}:latest"
   container_port  = var.app_port
 

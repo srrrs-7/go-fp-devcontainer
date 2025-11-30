@@ -1,6 +1,14 @@
 # WAF Module
 # Creates WAF Web ACL with AWS managed rules
 
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+    }
+  }
+}
+
 # -----------------------------------------------------------------------------
 # WAF Web ACL
 # -----------------------------------------------------------------------------

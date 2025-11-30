@@ -166,7 +166,7 @@ iac/
 
 ### 前提条件
 
-- AWS CLI がインストール済みで認証情報が設定されていること
+- AWS CLI >= 2.32.0 がインストール済みであること
 - Terraform >= 1.0 がインストール済みであること
 - Terraform 状態ファイル用の S3 バケットが作成済みであること
 
@@ -175,39 +175,83 @@ iac/
 aws s3 mb s3://your-terraform-state-bucket --region ap-northeast-1
 ```
 
-### 1. Backend 設定 (S3)
+### 1. AWS 認証設定
+
+#### 方法 A: `aws login` を使用している場合（推奨）
+
+`aws login` コマンドで認証している場合、Terraform は `login_session` 形式を直接サポートしていないため、`credential_process` を使用します。
+
+```bash
+# ~/.aws/config に以下を追加
+cat >> ~/.aws/config << 'EOF'
+
+# Terraform用のプロファイル
+[profile terraform]
+credential_process = aws configure export-credentials --profile default --format process
+region = ap-northeast-1
+EOF
+```
+
+これにより、AWS CLI が認証情報を動的に提供し、Terraform が使用できるようになります。
+
+#### 方法 B: AWS SSO を使用している場合
+
+```bash
+# SSO でログイン
+aws sso login --profile your-sso-profile
+
+# プロファイルを環境変数で指定
+export AWS_PROFILE=your-sso-profile
+```
+
+#### 方法 C: IAM アクセスキーを使用している場合
+
+```bash
+aws configure
+# Access Key ID, Secret Access Key, Region を入力
+```
+
+#### 認証の確認
+
+```bash
+aws sts get-caller-identity
+```
+
+### 2. Backend 設定 (S3)
 
 Terraform の状態ファイルを S3 に保存するための設定が必要です。
-
-#### 方法 A: backend.hcl ファイルを使用（推奨）
 
 ```bash
 cd apps/iac/environments/dev
 
 # backend.hcl を作成
 cp backend.hcl.example backend.hcl
-
-# 値を編集（バケット名を変更）
-# bucket = "your-terraform-state-bucket"
 ```
 
-#### 方法 B: コマンドラインオプションで指定
+`backend.hcl` を編集:
 
-```bash
-terraform init \
-  -backend-config="bucket=your-terraform-state-bucket" \
-  -backend-config="key=dev/terraform.tfstate" \
-  -backend-config="region=ap-northeast-1"
+```hcl
+bucket  = "your-terraform-state-bucket"
+key     = "dev/terraform.tfstate"
+region  = "ap-northeast-1"
+profile = "terraform"  # 1. で設定したプロファイル名
 ```
 
-### 2. 環境変数の設定 (terraform.tfvars)
+### 3. 環境変数の設定 (terraform.tfvars)
 
 `terraform.tfvars.example` をコピーして値を設定:
+
+```bash
+cp terraform.tfvars.example terraform.tfvars
+```
+
+`terraform.tfvars` を編集:
 
 ```hcl
 project     = "myapp"
 environment = "dev"
 aws_region  = "ap-northeast-1"
+aws_profile = "terraform"  # 1. で設定したプロファイル名
 
 # Domain
 domain_name    = "dev.example.com"
@@ -232,15 +276,13 @@ cognito_logout_urls = [
 ]
 ```
 
-### 3. Terraform 初期化とデプロイ
+### 4. Terraform 初期化とデプロイ
 
 ```bash
 cd apps/iac/environments/dev
 
-# 方法 A を使用した場合
+# 初期化
 terraform init -backend-config=backend.hcl
-
-# 方法 B を使用した場合は上記の -backend-config オプション付きコマンドを実行
 
 # 実行計画の確認
 terraform plan
