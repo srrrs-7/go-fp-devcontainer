@@ -71,3 +71,49 @@ func Combine[T, E any](results ...Result[T, E]) Result[[]T, E] {
 	}
 	return Ok[[]T, E](values)
 }
+
+// Pipe2 chains: FlatMap -> Map
+// A --(f1)--> B --(f2)--> C
+func Pipe2[A, B, C, Err any](
+	r Result[A, Err],
+	f1 func(A) Result[B, Err],
+	f2 func(B) C,
+) Result[C, Err] {
+	return Map(FlatMap(r, f1), f2)
+}
+
+// Pipe3 chains: FlatMap -> FlatMap -> Map
+// A --(f1)--> B --(f2)--> C --(f3)--> D
+func Pipe3[A, B, C, D, Err any](
+	r Result[A, Err],
+	f1 func(A) Result[B, Err],
+	f2 func(B) Result[C, Err],
+	f3 func(C) D,
+) Result[D, Err] {
+	return Map(FlatMap(FlatMap(r, f1), f2), f3)
+}
+
+// Pipe4 chains: FlatMap -> FlatMap -> FlatMap -> Map
+// A --(f1)--> B --(f2)--> C --(f3)--> D --(f4)--> E
+func Pipe4[A, B, C, D, E, Err any](
+	r Result[A, Err],
+	f1 func(A) Result[B, Err],
+	f2 func(B) Result[C, Err],
+	f3 func(C) Result[D, Err],
+	f4 func(D) E,
+) Result[E, Err] {
+	return Map(FlatMap(FlatMap(FlatMap(r, f1), f2), f3), f4)
+}
+
+// Pipe5 chains: FlatMap -> FlatMap -> FlatMap -> FlatMap -> Map
+// A --(f1)--> B --(f2)--> C --(f3)--> D --(f4)--> E --(f5)--> F
+func Pipe5[A, B, C, D, E, F, Err any](
+	r Result[A, Err],
+	f1 func(A) Result[B, Err],
+	f2 func(B) Result[C, Err],
+	f3 func(C) Result[D, Err],
+	f4 func(D) Result[E, Err],
+	f5 func(E) F,
+) Result[F, Err] {
+	return Map(FlatMap(FlatMap(FlatMap(FlatMap(r, f1), f2), f3), f4), f5)
+}

@@ -16,18 +16,16 @@ type putResponse struct {
 }
 
 func PutHandler(w http.ResponseWriter, r *http.Request) {
-	res := types.Map(
-		types.FlatMap(
-			newPutRequest(r).validate(),
-			func(req putRequest) types.Result[model.Task, model.AppError] {
-				return task_repository.UpdateTask(
-					model.NewTaskID(req.ID),
-					model.TaskTitle(req.Title),
-					model.TaskDescription(req.Description),
-					model.TaskCompleted(req.Completed),
-				)
-			},
-		),
+	res := types.Pipe2(
+		newPutRequest(r).validate(),
+		func(req putRequest) types.Result[model.Task, model.AppError] {
+			return task_repository.UpdateTask(
+				model.NewTaskID(req.ID),
+				model.TaskTitle(req.Title),
+				model.TaskDescription(req.Description),
+				model.TaskCompleted(req.Completed),
+			)
+		},
 		func(task model.Task) putResponse {
 			return putResponse{
 				ID:          task.ID.String(),

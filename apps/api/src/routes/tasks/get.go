@@ -16,13 +16,11 @@ type getResponse struct {
 }
 
 func GetHandler(w http.ResponseWriter, r *http.Request) {
-	res := types.Map(
-		types.FlatMap(
-			newGetRequest(r).validate(),
-			func(req getRequest) types.Result[model.Task, model.AppError] {
-				return task_repository.FindTaskByID(model.NewTaskID(req.ID))
-			},
-		),
+	res := types.Pipe2(
+		newGetRequest(r).validate(),
+		func(req getRequest) types.Result[model.Task, model.AppError] {
+			return task_repository.FindTaskByID(model.NewTaskID(req.ID))
+		},
 		func(task model.Task) getResponse {
 			return getResponse{
 				ID:          task.ID.String(),

@@ -20,13 +20,11 @@ type taskItem struct {
 }
 
 func ListHandler(w http.ResponseWriter, r *http.Request) {
-	res := types.Map(
-		types.FlatMap(
-			newListRequest(r).validate(),
-			func(req listRequest) types.Result[[]model.Task, model.AppError] {
-				return task_repository.FindAllTasks()
-			},
-		),
+	res := types.Pipe2(
+		newListRequest(r).validate(),
+		func(req listRequest) types.Result[[]model.Task, model.AppError] {
+			return task_repository.FindAllTasks()
+		},
 		func(tasks []model.Task) listResponse {
 			items := make([]taskItem, len(tasks))
 			for i, task := range tasks {

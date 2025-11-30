@@ -16,16 +16,14 @@ type postResponse struct {
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
-	res := types.Map(
-		types.FlatMap(
-			newPostRequest(r).validate(),
-			func(req postRequest) types.Result[model.Task, model.AppError] {
-				return task_repository.CreateTask(
-					model.TaskTitle(req.Title),
-					model.TaskDescription(req.Description),
-				)
-			},
-		),
+	res := types.Pipe2(
+		newPostRequest(r).validate(),
+		func(req postRequest) types.Result[model.Task, model.AppError] {
+			return task_repository.CreateTask(
+				model.TaskTitle(req.Title),
+				model.TaskDescription(req.Description),
+			)
+		},
 		func(task model.Task) postResponse {
 			return postResponse{
 				ID:          task.ID.String(),
