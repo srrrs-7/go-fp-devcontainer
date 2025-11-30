@@ -18,7 +18,9 @@
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/go": {
       "version": "1.25"
-    }
+    },
+    "ghcr.io/devcontainers/features/terraform:1": {},
+    "ghcr.io/devcontainers/features/aws-cli:1": {}
   },
   "customizations": {
     "vscode": {
@@ -27,10 +29,7 @@
         "golang.go"
       ],
       "settings": {
-        "editor.formatOnSave": true,
-        "[go]": {
-          // "editor.defaultFormatter": "golang.go"
-        }
+        "editor.formatOnSave": true
       }
     }
   },
