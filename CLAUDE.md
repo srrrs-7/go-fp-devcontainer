@@ -13,6 +13,7 @@ apps/
   api/          # Backend API (go-chi router, port 8080)
   pkgs/         # Shared packages (db, logger, env, types)
   web/          # Frontend (WASM experimentation, port 3000)
+  iac/          # Terraform infrastructure (AWS)
 ```
 
 Go workspace: `apps/go.work` manages `api`, `pkgs`, and `web` modules.
@@ -125,6 +126,28 @@ for _, tt := range tests {
 ```
 
 HTTP handlers tested with `httptest.NewRequest` and `httptest.NewRecorder`.
+
+## Infrastructure (apps/iac)
+
+Terraform modules for AWS deployment:
+
+```
+iac/
+  environments/       # Environment configs (dev, stg, prd)
+  modules/           # Reusable Terraform modules
+    vpc/             # Multi-AZ VPC with public/private/database subnets
+    ecs/             # ECS Fargate service
+    ecr/             # Container registry
+    alb/             # Application Load Balancer
+    aurora/          # Aurora PostgreSQL
+    cognito/         # Authentication
+    cloudfront/      # CDN
+    s3/              # Static assets
+    waf/             # Web Application Firewall
+    ...
+```
+
+Naming convention: `${project}-${environment}-${resource}`
 
 ## CI Pipeline
 
