@@ -4,3 +4,8 @@ setup.personal.sh
 
 # WASM build artifacts
 *.wasm
+
+# Terraform
+.terraform
+.terraform.lock.hcl
+terraform.tfvars

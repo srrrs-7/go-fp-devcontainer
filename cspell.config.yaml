@@ -10,6 +10,7 @@ words:
   - coverprofile
   - DB_DBNAME
   - DBTX
+  - GOARCH
   - healthcheck
   - isready
   - ldflags
