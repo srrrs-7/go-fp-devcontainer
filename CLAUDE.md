@@ -15,7 +15,7 @@ apps/
   web/          # Frontend (WASM experimentation, port 3000)
 ```
 
-Go workspace: `apps/go.work` manages `api` and `pkgs` modules.
+Go workspace: `apps/go.work` manages `api`, `pkgs`, and `web` modules.
 
 ## Development Commands
 
@@ -40,6 +40,10 @@ make atlas-status            # Show migration status
 # sqlc code generation
 make sqlc-gen      # Generate Go code from SQL queries
 make sqlc-compile  # Validate SQL queries
+
+# WASM build
+make wasm          # Build WebAssembly binary
+make wasm-clean    # Remove WASM artifacts
 ```
 
 ## Architecture
@@ -85,6 +89,15 @@ infra/rds/               # Repository implementations
 ```
 
 Route pattern: `/api/v1/tasks`, `/api/v1/tasks/{id}`
+
+### Web Frontend (apps/web)
+
+Go + WebAssembly frontend using `syscall/js` for DOM manipulation:
+- `main.go` - WASM entry point, exposes `fetchTasks()` and `addTask()` to JavaScript
+- `static/index.html` - HTML/CSS template, loads `wasm_exec.js` and `main.wasm`
+- Dockerfile uses multi-stage build: Go WASM compilation → nginx for serving
+
+Build: `GOOS=js GOARCH=wasm go build -o main.wasm .`
 
 ### Database Layer (apps/pkgs/db)
 
