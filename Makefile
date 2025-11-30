@@ -17,6 +17,7 @@ dev-cp:
 
 API_MOD = ./apps/api
 PKGS_MOD = ./apps/pkgs
+WEB_MOD = ./apps/web
 MODS = $(API_MOD) $(PKGS_MOD)
 
 cp:
@@ -51,6 +52,19 @@ env:
 	for mod in $(MODS); do \
 		(cd $$mod && go env); \
 	done
+
+########
+# wasm #
+########
+.PHONY: wasm wasm-clean
+
+wasm:
+	@echo "Building WebAssembly..."
+	cd ${WEB_MOD} && GOOS=js GOARCH=wasm go build -o main.wasm .
+	@echo "Done: ${WEB_MOD}/main.wasm"
+
+wasm-clean:
+	rm -f ${WEB_MOD}/main.wasm
 
 ########
 # sqlc #

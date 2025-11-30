@@ -1,3 +1,6 @@
 .env
 compose.override.yaml
 setup.personal.sh
+
+# WASM build artifacts
+*.wasm
