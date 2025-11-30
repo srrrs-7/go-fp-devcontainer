@@ -1,0 +1,28 @@
+# Development Environment Configuration
+# Copy this file to terraform.tfvars and update the values
+
+project     = "myapp"
+environment = "dev"
+aws_region  = "ap-northeast-1"
+
+# Domain
+domain_name    = "dev.example.com"
+hosted_zone_id = "Z1234567890ABC"
+
+# Database
+database_name = "myapp"
+
+# GitHub Actions
+github_repository        = "your-org/your-repo"
+github_oidc_provider_arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+
+# Cognito callback URLs (update for your dev environment)
+cognito_callback_urls = [
+  "http://localhost:3000/callback",
+  "https://dev.example.com/callback"
+]
+
+cognito_logout_urls = [
+  "http://localhost:3000",
+  "https://dev.example.com"
+]

@@ -1,10 +1,14 @@
-# CD Pipeline: Database Migration → Build → Deploy to ECS
+# CD Pipeline: Database Migration → Build → Deploy
 #
 # Trigger:
-#   - Push to main: Auto-deploy to dev
-#   - Manual (workflow_dispatch): Select environment (dev/stg/prd)
+#   - Push to main: Auto-deploy to dev (only changed components)
+#   - Manual (workflow_dispatch): Select environment and components
 #
-# Flow: migrate job (success) → deploy job
+# Flow:
+#   1. detect-changes: Determine which components changed
+#   2. migrate: Run database migrations (if API changed)
+#   3. deploy-api: Build and deploy API to ECS (if API changed)
+#   4. deploy-web: Build and deploy Web to S3/CloudFront (if Web changed)
 #
 # Authentication:
 #   - AWS OIDC (no long-lived credentials)
@@ -15,17 +19,10 @@
 # Environment Variables (set per environment):
 #   - AWS_REGION: AWS region (e.g., ap-northeast-1)
 #   - AWS_ROLE_ARN: IAM Role ARN for OIDC authentication
-#   - DB_HOST: RDS endpoint
-#   - DB_PORT: Database port (e.g., 5432)
-#   - DB_DBNAME: Database name
-#   - DB_USERNAME: IAM auth database user
-#   - ECR_REPOSITORY_API: ECR repository name for API
-#   - CONTAINER_NAME_API: Container name in task definition
-#   - ECS_SERVICE_API: ECS service name
-#   - ECS_CLUSTER: ECS cluster name
-#
-# Required Files:
-#   - .aws/task-definition-api.json: ECS task definition template
+#   - DB_HOST, DB_PORT, DB_DBNAME, DB_USERNAME: Database connection
+#   - ECR_REPOSITORY_API, CONTAINER_NAME_API: ECR settings
+#   - ECS_SERVICE_API, ECS_CLUSTER: ECS settings
+#   - S3_BUCKET_WEB, CLOUDFRONT_DISTRIBUTION_ID: Frontend settings
 
 name: CD
 
@@ -44,59 +41,94 @@ on:
           - dev
           - stg
           - prd
+      deploy_api:
+        description: 'Deploy API'
+        type: boolean
+        default: true
+      deploy_web:
+        description: 'Deploy Web'
+        type: boolean
+        default: true
 
 # Prevent concurrent deployments to same environment
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.environment || 'dev' }}
+  group: cd-${{ inputs.environment || 'dev' }}
   cancel-in-progress: false
+
+env:
+  GO_VERSION: '1.25'
 
 jobs:
   # ====================
-  # Set Environment
+  # Setup & Change Detection
   # ====================
   setup:
     name: Setup
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.set-env.outputs.environment }}
+      deploy_api: ${{ steps.changes.outputs.api }}
+      deploy_web: ${{ steps.changes.outputs.web }}
+      deploy_db: ${{ steps.changes.outputs.db }}
+
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit for change detection
+
       - name: Determine environment
         id: set-env
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
           else
-            # Default to dev for push to main
             echo "environment=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual dispatch: use input values
+            echo "api=${{ inputs.deploy_api }}" >> "$GITHUB_OUTPUT"
+            echo "web=${{ inputs.deploy_web }}" >> "$GITHUB_OUTPUT"
+            echo "db=${{ inputs.deploy_api }}" >> "$GITHUB_OUTPUT"
+          else
+            # Push: detect changed files
+            API_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -q '^apps/api/' && echo 'true' || echo 'false')
+            WEB_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -q '^apps/web/' && echo 'true' || echo 'false')
+            DB_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -q '^apps/pkgs/db/' && echo 'true' || echo 'false')
+
+            echo "api=$API_CHANGED" >> "$GITHUB_OUTPUT"
+            echo "web=$WEB_CHANGED" >> "$GITHUB_OUTPUT"
+            echo "db=$DB_CHANGED" >> "$GITHUB_OUTPUT"
+
+            echo "::notice::API changed: $API_CHANGED, Web changed: $WEB_CHANGED, DB changed: $DB_CHANGED"
           fi
 
   # ====================
   # Database Migration
   # ====================
-  # Runs Atlas migrations before deployment.
-  # If migration fails, deployment is blocked.
   migrate:
-    name: Database Migration (${{ needs.setup.outputs.environment }})
+    name: Migrate (${{ needs.setup.outputs.environment }})
     runs-on: ubuntu-latest
     needs: setup
+    if: needs.setup.outputs.deploy_db == 'true' || needs.setup.outputs.deploy_api == 'true'
     environment: ${{ needs.setup.outputs.environment }}
     permissions:
-      id-token: write  # Required for OIDC
+      id-token: write
       contents: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Authenticate with AWS using OIDC (no stored credentials)
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: ./.github/actions/aws-auth
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          role-arn: ${{ vars.AWS_ROLE_ARN }}
+          region: ${{ vars.AWS_REGION }}
 
-      # Generate temporary RDS auth token using IAM authentication
-      # Token is valid for 15 minutes and masked in logs
       - name: Generate RDS auth token
         id: rds-token
         run: |
@@ -111,7 +143,6 @@ jobs:
       - name: Setup Atlas
         uses: ariga/setup-atlas@v0
 
-      # Apply pending migrations using Atlas
       - name: Run database migration
         env:
           DB_HOST: ${{ vars.DB_HOST }}
@@ -123,40 +154,38 @@ jobs:
         run: atlas migrate apply --env ci
 
   # ====================
-  # Build and Deploy
+  # Deploy API
   # ====================
-  # Builds Docker image, pushes to ECR, and deploys to ECS Fargate.
-  # Only runs after successful migration.
-  deploy:
-    name: Build and Deploy (${{ needs.setup.outputs.environment }})
+  deploy-api:
+    name: Deploy API (${{ needs.setup.outputs.environment }})
     runs-on: ubuntu-latest
     needs: [setup, migrate]
+    if: |
+      always() &&
+      needs.setup.outputs.deploy_api == 'true' &&
+      (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
     environment: ${{ needs.setup.outputs.environment }}
     permissions:
-      id-token: write  # Required for OIDC
+      id-token: write
       contents: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: ./.github/actions/aws-auth
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          role-arn: ${{ vars.AWS_ROLE_ARN }}
+          region: ${{ vars.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Enable BuildKit for faster builds with layer caching
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build and push with git SHA tag for traceability
       - name: Build and push Docker image
-        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -169,8 +198,7 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: false
 
-      # Update task definition with new image
-      - name: Render Amazon ECS task definition
+      - name: Render ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
@@ -178,7 +206,6 @@ jobs:
           container-name: ${{ vars.CONTAINER_NAME_API }}
           image: ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_API }}:${{ github.sha }}
 
-      # Deploy to ECS and wait for service stability
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
@@ -186,3 +213,65 @@ jobs:
           service: ${{ vars.ECS_SERVICE_API }}
           cluster: ${{ vars.ECS_CLUSTER }}
           wait-for-service-stability: true
+
+  # ====================
+  # Deploy Web
+  # ====================
+  deploy-web:
+    name: Deploy Web (${{ needs.setup.outputs.environment }})
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.deploy_web == 'true'
+    environment: ${{ needs.setup.outputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: apps/web/go.mod
+
+      - name: Build WASM
+        working-directory: apps/web
+        run: |
+          GOOS=js GOARCH=wasm go build -o static/main.wasm .
+          cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" ./static/
+          echo "Build complete:"
+          ls -lh static/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy to S3
+        working-directory: apps/web/static
+        run: |
+          # Sync all files with appropriate cache headers
+          aws s3 sync . s3://${{ vars.S3_BUCKET_WEB }}/ \
+            --delete \
+            --exclude "*.html" \
+            --cache-control "public, max-age=31536000, immutable"
+
+          # Upload HTML files with no-cache
+          aws s3 sync . s3://${{ vars.S3_BUCKET_WEB }}/ \
+            --exclude "*" \
+            --include "*.html" \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "text/html"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+          echo "::notice::CloudFront invalidation created: $INVALIDATION_ID"
