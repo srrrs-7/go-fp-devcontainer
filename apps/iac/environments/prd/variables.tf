@@ -1,228 +1,295 @@
 # Production Environment Variables
 # Production-grade defaults with high availability and security
 
+# -----------------------------------------------------------------------------
+# General
+# -----------------------------------------------------------------------------
 variable "project" {
-  type = string
+  description = "Project name"
+  type        = string
 }
 
 variable "environment" {
-  type    = string
-  default = "prd"
+  description = "Environment name"
+  type        = string
+  default     = "prd"
 }
 
 variable "aws_region" {
-  type    = string
-  default = "ap-northeast-1"
+  description = "AWS region"
+  type        = string
+  default     = "ap-northeast-1"
 }
 
+# -----------------------------------------------------------------------------
 # VPC
+# -----------------------------------------------------------------------------
 variable "vpc_cidr" {
-  type    = string
-  default = "10.2.0.0/16" # Different CIDR for prd
+  description = "VPC CIDR block"
+  type        = string
+  default     = "10.2.0.0/16"
 }
 
 variable "az_count" {
-  type    = number
-  default = 3 # 3 AZs for production
+  description = "Number of availability zones"
+  type        = number
+  default     = 3
 }
 
 variable "enable_nat_gateway" {
-  type    = bool
-  default = true
+  description = "Enable NAT Gateway"
+  type        = bool
+  default     = true
 }
 
 variable "single_nat_gateway" {
-  type    = bool
-  default = false # Multi-NAT for production HA
+  description = "Use single NAT Gateway (cost saving)"
+  type        = bool
+  default     = false
 }
 
 variable "enable_flow_logs" {
-  type    = bool
-  default = true
+  description = "Enable VPC Flow Logs"
+  type        = bool
+  default     = true
 }
 
 variable "enable_vpc_endpoints" {
-  type    = bool
-  default = true
+  description = "Enable VPC Endpoints"
+  type        = bool
+  default     = true
 }
 
+# -----------------------------------------------------------------------------
 # Application
+# -----------------------------------------------------------------------------
 variable "app_port" {
-  type    = number
-  default = 8080
+  description = "Application port"
+  type        = number
+  default     = 8080
 }
 
 variable "health_check_path" {
-  type    = string
-  default = "/health"
+  description = "Health check path"
+  type        = string
+  default     = "/health"
 }
 
+# -----------------------------------------------------------------------------
 # Database
+# -----------------------------------------------------------------------------
 variable "database_name" {
-  type = string
+  description = "Database name"
+  type        = string
 }
 
 variable "database_master_username" {
-  type    = string
-  default = "postgres"
+  description = "Database master username"
+  type        = string
+  default     = "postgres"
 }
 
 variable "database_app_username" {
-  type    = string
-  default = "app_user"
+  description = "Database application username (for IAM auth)"
+  type        = string
+  default     = "app_user"
 }
 
 variable "aurora_engine_version" {
-  type    = string
-  default = "16.4"
+  description = "Aurora PostgreSQL engine version"
+  type        = string
+  default     = "16.4"
 }
 
 variable "aurora_engine_version_major" {
-  type    = string
-  default = "16"
+  description = "Aurora PostgreSQL major version"
+  type        = string
+  default     = "16"
 }
 
 variable "aurora_instance_count" {
-  type    = number
-  default = 3 # 3 instances for production (multi-AZ)
+  description = "Number of Aurora instances"
+  type        = number
+  default     = 3
 }
 
 variable "aurora_min_capacity" {
-  type    = number
-  default = 2 # Higher minimum for production
+  description = "Aurora Serverless v2 minimum ACU"
+  type        = number
+  default     = 2
 }
 
 variable "aurora_max_capacity" {
-  type    = number
-  default = 64 # Higher maximum for production
+  description = "Aurora Serverless v2 maximum ACU"
+  type        = number
+  default     = 64
 }
 
 variable "aurora_backup_retention_period" {
-  type    = number
-  default = 35 # Maximum retention for production
+  description = "Aurora backup retention period (days)"
+  type        = number
+  default     = 35
 }
 
 variable "aurora_deletion_protection" {
-  type    = bool
-  default = true
+  description = "Aurora deletion protection"
+  type        = bool
+  default     = true
 }
 
 variable "aurora_skip_final_snapshot" {
-  type    = bool
-  default = false
+  description = "Skip final snapshot on deletion"
+  type        = bool
+  default     = false
 }
 
+# -----------------------------------------------------------------------------
 # ECS
+# -----------------------------------------------------------------------------
 variable "ecs_task_cpu" {
-  type    = number
-  default = 1024 # Higher for production
+  description = "ECS task CPU units"
+  type        = number
+  default     = 1024
 }
 
 variable "ecs_task_memory" {
-  type    = number
-  default = 2048 # Higher for production
+  description = "ECS task memory (MB)"
+  type        = number
+  default     = 2048
 }
 
 variable "ecs_desired_count" {
-  type    = number
-  default = 3 # 3 tasks for production
+  description = "ECS desired task count"
+  type        = number
+  default     = 3
 }
 
 variable "ecs_enable_autoscaling" {
-  type    = bool
-  default = true
+  description = "Enable ECS auto scaling"
+  type        = bool
+  default     = true
 }
 
 variable "ecs_min_capacity" {
-  type    = number
-  default = 3
+  description = "ECS minimum capacity"
+  type        = number
+  default     = 3
 }
 
 variable "ecs_max_capacity" {
-  type    = number
-  default = 20 # Higher for production
+  description = "ECS maximum capacity"
+  type        = number
+  default     = 20
 }
 
 variable "ecs_enable_execute_command" {
-  type    = bool
-  default = false # Disabled for production security
+  description = "Enable ECS Exec for debugging"
+  type        = bool
+  default     = false
 }
 
+# -----------------------------------------------------------------------------
 # ALB
+# -----------------------------------------------------------------------------
 variable "alb_deletion_protection" {
-  type    = bool
-  default = true
+  description = "ALB deletion protection"
+  type        = bool
+  default     = true
 }
 
+# -----------------------------------------------------------------------------
 # CloudFront
+# -----------------------------------------------------------------------------
 variable "cloudfront_price_class" {
-  type    = string
-  default = "PriceClass_All" # All edge locations for production
+  description = "CloudFront price class"
+  type        = string
+  default     = "PriceClass_All"
 }
 
+# -----------------------------------------------------------------------------
 # WAF
+# -----------------------------------------------------------------------------
 variable "enable_waf" {
-  type    = bool
-  default = true
+  description = "Enable WAF"
+  type        = bool
+  default     = true
 }
 
 variable "waf_rate_limit" {
-  type    = number
-  default = 5000 # Higher limit for production
+  description = "WAF rate limit (requests per 5 minutes)"
+  type        = number
+  default     = 5000
 }
 
+# -----------------------------------------------------------------------------
 # Domain
+# -----------------------------------------------------------------------------
 variable "domain_name" {
-  type = string
+  description = "Domain name"
+  type        = string
 }
 
 variable "create_hosted_zone" {
-  type    = bool
-  default = false
+  description = "Create Route53 hosted zone"
+  type        = bool
+  default     = false
 }
 
 variable "hosted_zone_id" {
-  type    = string
-  default = null
+  description = "Existing Route53 hosted zone ID"
+  type        = string
+  default     = null
 }
 
+# -----------------------------------------------------------------------------
 # Cognito
+# -----------------------------------------------------------------------------
 variable "cognito_mfa_configuration" {
-  type    = string
-  default = "ON" # Required MFA for production
+  description = "Cognito MFA configuration (OFF, OPTIONAL, ON)"
+  type        = string
+  default     = "ON"
 }
 
 variable "cognito_deletion_protection" {
-  type    = bool
-  default = true
+  description = "Cognito deletion protection"
+  type        = bool
+  default     = true
 }
 
 variable "cognito_advanced_security_mode" {
-  type    = string
-  default = "ENFORCED" # Full security for production
+  description = "Cognito advanced security mode (OFF, AUDIT, ENFORCED)"
+  type        = string
+  default     = "ENFORCED"
 }
 
 variable "cognito_callback_urls" {
-  type    = list(string)
-  default = []
+  description = "Cognito callback URLs"
+  type        = list(string)
+  default     = []
 }
 
 variable "cognito_logout_urls" {
-  type    = list(string)
-  default = []
+  description = "Cognito logout URLs"
+  type        = list(string)
+  default     = []
 }
 
+# -----------------------------------------------------------------------------
 # GitHub Actions
+# -----------------------------------------------------------------------------
 variable "create_github_oidc_provider" {
-  type    = bool
-  default = false
+  description = "Create GitHub OIDC provider"
+  type        = bool
+  default     = false
 }
 
 variable "github_oidc_provider_arn" {
-  type    = string
-  default = null
+  description = "Existing GitHub OIDC provider ARN"
+  type        = string
+  default     = null
 }
 
 variable "github_repository" {
-  type = string
+  description = "GitHub repository (owner/repo)"
+  type        = string
 }

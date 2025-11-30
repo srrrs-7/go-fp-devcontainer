@@ -103,21 +103,24 @@ flowchart LR
 ```
 iac/
 ├── README.md
+├── shared/                          # 共有設定
+│   └── outputs.tf                  # 全環境共通の出力定義
+│
 ├── environments/                    # 環境別設定
 │   ├── dev/                        # 開発環境
 │   │   ├── main.tf                 # モジュール呼び出し
-│   │   ├── variables.tf            # 変数定義
-│   │   ├── outputs.tf              # 出力定義
+│   │   ├── variables.tf            # 変数定義 (dev 用デフォルト値)
+│   │   ├── outputs.tf -> ../../shared/outputs.tf  # シンボリックリンク
 │   │   └── terraform.tfvars.example
 │   ├── stg/                        # ステージング環境
 │   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   ├── outputs.tf
+│   │   ├── variables.tf            # 変数定義 (stg 用デフォルト値)
+│   │   ├── outputs.tf -> ../../shared/outputs.tf
 │   │   └── terraform.tfvars.example
 │   └── prd/                        # 本番環境
 │       ├── main.tf
-│       ├── variables.tf
-│       ├── outputs.tf
+│       ├── variables.tf            # 変数定義 (prd 用デフォルト値)
+│       ├── outputs.tf -> ../../shared/outputs.tf
 │       └── terraform.tfvars.example
 │
 └── modules/                        # 再利用可能なモジュール
@@ -339,12 +342,21 @@ flowchart LR
 
 | 設定 | dev | stg | prd |
 |-----|-----|-----|-----|
+| VPC CIDR | 10.0.0.0/16 | 10.1.0.0/16 | 10.2.0.0/16 |
+| AZ 数 | 2 | 2 | 3 |
 | NAT Gateway | 1 | 1 | AZ 数 |
-| Aurora インスタンス | 1 | 1 | 2+ |
+| Aurora インスタンス | 1 | 2 | 3 |
+| Aurora min/max ACU | 0.5/4 | 0.5/8 | 2/64 |
+| ECS CPU/Memory | 256/512 | 512/1024 | 1024/2048 |
+| ECS タスク数 | 1 | 2 | 3 |
 | ECS オートスケール | OFF | ON | ON |
 | WAF | OFF | ON | ON |
+| WAF レートリミット | - | 2000 | 5000 |
+| Cognito MFA | OPTIONAL | OPTIONAL | ON |
+| Cognito セキュリティ | OFF | AUDIT | ENFORCED |
 | 削除保護 | OFF | ON | ON |
 | ECS Exec | ON | ON | OFF |
+| CloudFront Price Class | PriceClass_200 | PriceClass_200 | PriceClass_All |
 
 ## セキュリティ
 
