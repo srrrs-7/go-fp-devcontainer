@@ -137,9 +137,10 @@ module "aurora" {
 }
 
 # -----------------------------------------------------------------------------
-# ACM Certificates
+# ACM Certificates (only when domain is configured)
 # -----------------------------------------------------------------------------
 module "acm" {
+  count  = var.domain_name != null ? 1 : 0
   source = "../../modules/acm"
 
   domain_name               = var.domain_name
@@ -151,6 +152,7 @@ module "acm" {
 
 # ACM for CloudFront (must be in us-east-1)
 module "acm_cloudfront" {
+  count  = var.domain_name != null ? 1 : 0
   source = "../../modules/acm"
   providers = {
     aws = aws.us_east_1
@@ -174,7 +176,7 @@ module "alb" {
   vpc_id             = module.vpc.vpc_id
   subnet_ids         = module.vpc.public_subnet_ids
   security_group_ids = [module.security_groups.alb_security_group_id]
-  certificate_arn    = module.acm.certificate_arn
+  certificate_arn    = var.domain_name != null ? module.acm[0].certificate_arn : null
 
   target_port       = var.app_port
   health_check_path = var.health_check_path
@@ -252,13 +254,14 @@ module "s3_assets" {
   enable_versioning   = true
   block_public_access = true
 
-  cors_rules = [
+  # CORS: CloudFrontドメインまたは独自ドメインからのアクセスを許可
+  cors_rules = var.domain_name != null ? [
     {
       allowed_headers = ["*"]
       allowed_methods = ["GET", "HEAD"]
       allowed_origins = ["https://${var.domain_name}"]
     }
-  ]
+  ] : []
 
   tags = local.tags
 }
@@ -276,8 +279,9 @@ module "cloudfront" {
   alb_origin_domain_name = module.alb.alb_dns_name
   enable_s3_origin       = true
 
-  aliases         = [var.domain_name, "www.${var.domain_name}"]
-  certificate_arn = module.acm_cloudfront.certificate_arn
+  # 独自ドメインがある場合のみaliasesとcertificateを設定
+  aliases         = var.domain_name != null ? [var.domain_name, "www.${var.domain_name}"] : []
+  certificate_arn = var.domain_name != null ? module.acm_cloudfront[0].certificate_arn : null
 
   price_class = var.cloudfront_price_class
   web_acl_id  = var.enable_waf ? module.waf[0].web_acl_arn : null
@@ -340,9 +344,10 @@ module "waf" {
 }
 
 # -----------------------------------------------------------------------------
-# Route53
+# Route53 (only when domain is configured)
 # -----------------------------------------------------------------------------
 module "route53" {
+  count  = var.domain_name != null ? 1 : 0
   source = "../../modules/route53"
 
   project     = var.project
@@ -351,8 +356,8 @@ module "route53" {
   create_hosted_zone = var.create_hosted_zone
   hosted_zone_id     = var.hosted_zone_id
 
-  cloudfront_domain_name    = module.cloudfront.distribution_domain_name
-  cloudfront_hosted_zone_id = module.cloudfront.distribution_hosted_zone_id
+  cloudfront_domain_name    = module.cloudfront[0].distribution_domain_name
+  cloudfront_hosted_zone_id = module.cloudfront[0].distribution_hosted_zone_id
   enable_cloudfront_record  = true
 
   api_subdomain     = "api"
@@ -361,8 +366,8 @@ module "route53" {
   enable_api_record = true
 
   acm_certificate_validation_records = merge(
-    module.acm.domain_validation_options,
-    module.acm_cloudfront.domain_validation_options
+    module.acm[0].domain_validation_options,
+    module.acm_cloudfront[0].domain_validation_options
   )
 
   tags = local.tags

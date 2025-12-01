@@ -228,8 +228,9 @@ variable "waf_rate_limit" {
 # Domain
 # -----------------------------------------------------------------------------
 variable "domain_name" {
-  description = "Domain name"
+  description = "Domain name (set to null to skip domain-related resources)"
   type        = string
+  default     = null
 }
 
 variable "create_hosted_zone" {
