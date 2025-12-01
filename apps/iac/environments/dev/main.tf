@@ -356,8 +356,8 @@ module "route53" {
   create_hosted_zone = var.create_hosted_zone
   hosted_zone_id     = var.hosted_zone_id
 
-  cloudfront_domain_name    = module.cloudfront[0].distribution_domain_name
-  cloudfront_hosted_zone_id = module.cloudfront[0].distribution_hosted_zone_id
+  cloudfront_domain_name    = module.cloudfront.distribution_domain_name
+  cloudfront_hosted_zone_id = module.cloudfront.distribution_hosted_zone_id
   enable_cloudfront_record  = true
 
   api_subdomain     = "api"

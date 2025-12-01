@@ -124,11 +124,11 @@ output "github_actions_role_arn" {
 # URLs
 # -----------------------------------------------------------------------------
 output "app_url" {
-  description = "Application URL"
-  value       = "https://${var.domain_name}"
+  description = "Application URL (CloudFront)"
+  value       = var.domain_name != null ? "https://${var.domain_name}" : "https://${module.cloudfront.distribution_domain_name}"
 }
 
 output "api_url" {
-  description = "API URL"
-  value       = "https://api.${var.domain_name}"
+  description = "API URL (ALB)"
+  value       = var.domain_name != null ? "https://api.${var.domain_name}" : "http://${module.alb.alb_dns_name}"
 }
