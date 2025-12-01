@@ -5,7 +5,7 @@
 # Origin Access Control (for S3)
 # -----------------------------------------------------------------------------
 resource "aws_cloudfront_origin_access_control" "main" {
-  count = var.s3_origin_domain_name != null ? 1 : 0
+  count = var.enable_s3_origin ? 1 : 0
 
   name                              = "${var.project}-${var.environment}-oac"
   description                       = "OAC for ${var.project}-${var.environment}"

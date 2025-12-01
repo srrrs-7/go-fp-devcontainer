@@ -38,6 +38,12 @@ variable "cloudfront_domain_name" {
   default     = null
 }
 
+variable "enable_cloudfront_record" {
+  description = "Enable CloudFront DNS records (set to true when CloudFront is created)"
+  type        = bool
+  default     = false
+}
+
 variable "cloudfront_hosted_zone_id" {
   description = "CloudFront hosted zone ID"
   type        = string
@@ -48,6 +54,12 @@ variable "alb_dns_name" {
   description = "ALB DNS name"
   type        = string
   default     = null
+}
+
+variable "enable_api_record" {
+  description = "Enable API subdomain record (set to true when ALB is created)"
+  type        = bool
+  default     = false
 }
 
 variable "alb_zone_id" {

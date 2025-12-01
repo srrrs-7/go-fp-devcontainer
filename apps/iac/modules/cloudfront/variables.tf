@@ -14,6 +14,12 @@ variable "s3_origin_domain_name" {
   default     = null
 }
 
+variable "enable_s3_origin" {
+  description = "Enable S3 origin (set to true when S3 bucket is created)"
+  type        = bool
+  default     = false
+}
+
 variable "alb_origin_domain_name" {
   description = "ALB domain name for origin"
   type        = string

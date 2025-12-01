@@ -158,3 +158,13 @@ atlas-clean:
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		cd ${ATLAS_DIR} && atlas schema clean --env ${ATLAS_ENV} --auto-approve; \
 	fi
+
+#############
+# Terraform #
+#############
+IAC_DIR = ./apps/iac
+
+.PHONY: tf-fmt
+
+tf-fmt:
+	cd ${IAC_DIR} && terraform fmt -recursive

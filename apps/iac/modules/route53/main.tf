@@ -23,7 +23,7 @@ locals {
 # A Record for CloudFront
 # -----------------------------------------------------------------------------
 resource "aws_route53_record" "cloudfront" {
-  count = var.cloudfront_domain_name != null ? 1 : 0
+  count = var.enable_cloudfront_record ? 1 : 0
 
   zone_id = local.zone_id
   name    = var.subdomain != null ? "${var.subdomain}.${var.domain_name}" : var.domain_name
@@ -37,7 +37,7 @@ resource "aws_route53_record" "cloudfront" {
 }
 
 resource "aws_route53_record" "cloudfront_aaaa" {
-  count = var.cloudfront_domain_name != null ? 1 : 0
+  count = var.enable_cloudfront_record ? 1 : 0
 
   zone_id = local.zone_id
   name    = var.subdomain != null ? "${var.subdomain}.${var.domain_name}" : var.domain_name
@@ -54,7 +54,7 @@ resource "aws_route53_record" "cloudfront_aaaa" {
 # A Record for ALB (if not using CloudFront)
 # -----------------------------------------------------------------------------
 resource "aws_route53_record" "alb" {
-  count = var.alb_dns_name != null && var.cloudfront_domain_name == null ? 1 : 0
+  count = !var.enable_cloudfront_record ? 1 : 0
 
   zone_id = local.zone_id
   name    = var.subdomain != null ? "${var.subdomain}.${var.domain_name}" : var.domain_name
@@ -71,7 +71,7 @@ resource "aws_route53_record" "alb" {
 # API Subdomain Record
 # -----------------------------------------------------------------------------
 resource "aws_route53_record" "api" {
-  count = var.api_subdomain != null && var.alb_dns_name != null ? 1 : 0
+  count = var.enable_api_record ? 1 : 0
 
   zone_id = local.zone_id
   name    = "${var.api_subdomain}.${var.domain_name}"

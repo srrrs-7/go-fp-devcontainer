@@ -210,8 +210,9 @@ module "ecs" {
   autoscaling_min_capacity = var.ecs_min_capacity
   autoscaling_max_capacity = var.ecs_max_capacity
 
-  rds_resource_id = module.aurora.cluster_resource_id
-  rds_db_username = var.database_app_username
+  rds_resource_id     = module.aurora.cluster_resource_id
+  rds_db_username     = var.database_app_username
+  enable_rds_iam_auth = true
 
   environment_variables = [
     {
@@ -273,6 +274,7 @@ module "cloudfront" {
 
   s3_origin_domain_name  = module.s3_assets.bucket_regional_domain_name
   alb_origin_domain_name = module.alb.alb_dns_name
+  enable_s3_origin       = true
 
   aliases         = [var.domain_name, "www.${var.domain_name}"]
   certificate_arn = module.acm_cloudfront.certificate_arn
@@ -351,10 +353,12 @@ module "route53" {
 
   cloudfront_domain_name    = module.cloudfront.distribution_domain_name
   cloudfront_hosted_zone_id = module.cloudfront.distribution_hosted_zone_id
+  enable_cloudfront_record  = true
 
-  api_subdomain = "api"
-  alb_dns_name  = module.alb.alb_dns_name
-  alb_zone_id   = module.alb.alb_zone_id
+  api_subdomain     = "api"
+  alb_dns_name      = module.alb.alb_dns_name
+  alb_zone_id       = module.alb.alb_zone_id
+  enable_api_record = true
 
   acm_certificate_validation_records = merge(
     module.acm.domain_validation_options,
@@ -404,8 +408,9 @@ module "iam" {
     module.ecs.task_role_arn
   ]
 
-  rds_resource_id = module.aurora.cluster_resource_id
-  rds_db_username = var.database_app_username
+  rds_resource_id     = module.aurora.cluster_resource_id
+  rds_db_username     = var.database_app_username
+  enable_rds_iam_auth = true
 
   tags = local.tags
 }

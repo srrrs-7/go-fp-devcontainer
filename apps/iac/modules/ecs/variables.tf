@@ -213,6 +213,12 @@ variable "rds_resource_id" {
   default     = null
 }
 
+variable "enable_rds_iam_auth" {
+  description = "Enable RDS IAM authentication (set to true when RDS is created)"
+  type        = bool
+  default     = false
+}
+
 variable "rds_db_username" {
   description = "RDS database username for IAM auth"
   type        = string

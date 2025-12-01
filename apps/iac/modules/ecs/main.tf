@@ -280,7 +280,7 @@ resource "aws_iam_role" "task" {
 
 # RDS IAM Auth Policy
 resource "aws_iam_role_policy" "task_rds" {
-  count = var.rds_resource_id != null ? 1 : 0
+  count = var.enable_rds_iam_auth ? 1 : 0
 
   name = "${var.project}-${var.environment}-${var.service_name}-rds-connect"
   role = aws_iam_role.task.id

@@ -142,9 +142,9 @@ resource "aws_cognito_user_pool_client" "main" {
   supported_identity_providers         = var.supported_identity_providers
 
   # Security
-  generate_secret                      = var.generate_secret
-  prevent_user_existence_errors        = "ENABLED"
-  enable_token_revocation              = true
+  generate_secret                               = var.generate_secret
+  prevent_user_existence_errors                 = "ENABLED"
+  enable_token_revocation                       = true
   enable_propagate_additional_user_context_data = false
 
   # Auth flows

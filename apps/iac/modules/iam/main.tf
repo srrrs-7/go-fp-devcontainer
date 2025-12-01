@@ -124,7 +124,7 @@ resource "aws_iam_role_policy" "github_actions_ecs" {
 
 # RDS IAM Auth permissions (for migrations)
 resource "aws_iam_role_policy" "github_actions_rds" {
-  count = var.rds_resource_id != null ? 1 : 0
+  count = var.enable_rds_iam_auth ? 1 : 0
 
   name = "${var.project}-${var.environment}-github-actions-rds"
   role = aws_iam_role.github_actions.id
