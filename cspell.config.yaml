@@ -5,8 +5,12 @@ ignorePaths:
 dictionaryDefinitions: []
 dictionaries: []
 words:
+  - addgroup
+  - adduser
   - anthropics
+  - arigaio
   - bluemonday
+  - Buildx
   - coverprofile
   - DB_DBNAME
   - DBTX
@@ -17,5 +21,7 @@ words:
   - mydb
   - pkgs
   - sqlc
+  - sslmode
   - tfstate
   - tfvars
+  - tzdata

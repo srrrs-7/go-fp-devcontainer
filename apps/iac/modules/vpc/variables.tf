@@ -61,6 +61,12 @@ variable "enable_interface_endpoints" {
   default     = true
 }
 
+variable "enable_ssm_endpoints" {
+  description = "Enable SSM VPC Endpoints for Session Manager access to private instances"
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Additional tags for resources"
   type        = map(string)

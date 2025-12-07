@@ -13,6 +13,10 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.0"
     }
+    postgresql = {
+      source  = "cyrilgdn/postgresql"
+      version = "~> 1.22"
+    }
   }
 
   # Dev環境: ローカルバックエンド（状態ファイルはローカルに保存）
@@ -55,6 +59,36 @@ provider "aws" {
   }
 }
 
+# PostgreSQL provider for database user management
+# Note: This requires network access to the database from the Terraform execution environment
+# For CI/CD, consider using a bastion host or VPN connection
+#
+# IMPORTANT: The PostgreSQL provider configuration uses data sources which creates
+# a chicken-and-egg problem. The database must exist before users can be created.
+# Run terraform apply in two steps:
+#   1. First apply without create_db_users=true to create the database
+#   2. Then apply with create_db_users=true to create the users
+provider "postgresql" {
+  host     = var.create_db_users ? local.db_endpoint : "localhost"
+  port     = var.create_db_users ? local.db_port : 5432
+  database = var.database_name
+  username = var.database_master_username
+  password = var.create_db_users ? jsondecode(data.aws_secretsmanager_secret_version.db_master[0].secret_string)["password"] : ""
+
+  # SSL configuration for AWS RDS/Aurora
+  sslmode = var.create_db_users ? "require" : "disable"
+
+  # PostgreSQL provider doesn't need superuser for creating roles
+  superuser = false
+}
+
+# Fetch master password from Secrets Manager for PostgreSQL provider
+data "aws_secretsmanager_secret_version" "db_master" {
+  count = var.create_db_users ? 1 : 0
+
+  secret_id = local.db_master_secret_arn
+}
+
 locals {
   tags = {
     Project     = var.project
@@ -79,6 +113,7 @@ module "vpc" {
   enable_flow_logs           = var.enable_flow_logs
   enable_vpc_endpoints       = var.enable_vpc_endpoints
   enable_interface_endpoints = var.enable_interface_endpoints
+  enable_ssm_endpoints       = var.enable_ssm_endpoints
 
   tags = local.tags
 }
@@ -150,6 +185,11 @@ module "aurora" {
   deletion_protection     = var.aurora_deletion_protection
   skip_final_snapshot     = var.aurora_skip_final_snapshot
 
+  # Database users
+  create_db_users     = var.create_db_users
+  api_db_username     = var.api_db_username
+  migrate_db_username = var.migrate_db_username
+
   tags = local.tags
 }
 
@@ -179,15 +219,21 @@ module "rds" {
   enable_performance_insights = false
   enable_cloudwatch_logs      = false
 
+  # Database users
+  create_db_users     = var.create_db_users
+  api_db_username     = var.api_db_username
+  migrate_db_username = var.migrate_db_username
+
   tags = local.tags
 }
 
 # Local values for database outputs (works with either Aurora or RDS)
 locals {
-  db_endpoint    = var.database_type == "aurora" ? module.aurora[0].cluster_endpoint : module.rds[0].endpoint
-  db_port        = var.database_type == "aurora" ? module.aurora[0].cluster_port : module.rds[0].port
-  db_name        = var.database_type == "aurora" ? module.aurora[0].database_name : module.rds[0].database_name
-  db_resource_id = var.database_type == "aurora" ? module.aurora[0].cluster_resource_id : module.rds[0].resource_id
+  db_endpoint          = var.database_type == "aurora" ? module.aurora[0].cluster_endpoint : module.rds[0].endpoint
+  db_port              = var.database_type == "aurora" ? module.aurora[0].cluster_port : module.rds[0].port
+  db_name              = var.database_type == "aurora" ? module.aurora[0].database_name : module.rds[0].database_name
+  db_resource_id       = var.database_type == "aurora" ? module.aurora[0].cluster_resource_id : module.rds[0].resource_id
+  db_master_secret_arn = var.database_type == "aurora" ? module.aurora[0].master_password_secret_arn : module.rds[0].secret_arn
 }
 
 # -----------------------------------------------------------------------------
@@ -314,11 +360,11 @@ module "ecs" {
 module "ecs_migrate" {
   source = "../../modules/ecs-job"
 
-  project        = var.project
-  environment    = var.environment
-  aws_region     = var.aws_region
-  job_name       = "migrate"
-  container_name = "migrate"
+  project         = var.project
+  environment     = var.environment
+  aws_region      = var.aws_region
+  job_name        = "migrate"
+  container_name  = "migrate"
   container_image = "${module.ecr_migrate.repository_url}:latest"
 
   task_cpu    = 256
@@ -542,6 +588,39 @@ module "iam" {
   rds_resource_id     = local.db_resource_id
   rds_db_username     = var.database_app_username
   enable_rds_iam_auth = true
+
+  tags = local.tags
+}
+
+# -----------------------------------------------------------------------------
+# Bastion Host (Session Manager)
+# -----------------------------------------------------------------------------
+module "bastion" {
+  count  = var.enable_bastion ? 1 : 0
+  source = "../../modules/bastion"
+
+  project     = var.project
+  environment = var.environment
+  aws_region  = var.aws_region
+
+  vpc_id    = module.vpc.vpc_id
+  subnet_id = module.vpc.private_subnet_ids[0]
+
+  instance_type         = var.bastion_instance_type
+  db_security_group_ids = [module.security_groups.aurora_security_group_id]
+
+  # RDS IAM auth
+  enable_rds_iam_auth = true
+  rds_resource_id     = local.db_resource_id
+
+  # Allow bastion to read DB credentials from Secrets Manager
+  secrets_arns = compact([
+    local.db_master_secret_arn,
+    var.database_type == "aurora" && var.create_db_users ? module.aurora[0].api_user_secret_arn : null,
+    var.database_type == "aurora" && var.create_db_users ? module.aurora[0].migrate_user_secret_arn : null,
+    var.database_type == "rds" && var.create_db_users ? module.rds[0].api_user_secret_arn : null,
+    var.database_type == "rds" && var.create_db_users ? module.rds[0].migrate_user_secret_arn : null,
+  ])
 
   tags = local.tags
 }

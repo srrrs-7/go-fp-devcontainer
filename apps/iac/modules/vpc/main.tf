@@ -369,3 +369,51 @@ resource "aws_security_group" "vpc_endpoints" {
     Name = "${var.project}-${var.environment}-vpc-endpoints-sg"
   })
 }
+
+# -----------------------------------------------------------------------------
+# SSM VPC Endpoints (for Session Manager)
+# -----------------------------------------------------------------------------
+resource "aws_vpc_endpoint" "ssm" {
+  count = var.enable_vpc_endpoints && var.enable_ssm_endpoints ? 1 : 0
+
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.ssm"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints[0].id]
+  private_dns_enabled = true
+
+  tags = merge(var.tags, {
+    Name = "${var.project}-${var.environment}-ssm-endpoint"
+  })
+}
+
+resource "aws_vpc_endpoint" "ssmmessages" {
+  count = var.enable_vpc_endpoints && var.enable_ssm_endpoints ? 1 : 0
+
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.ssmmessages"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints[0].id]
+  private_dns_enabled = true
+
+  tags = merge(var.tags, {
+    Name = "${var.project}-${var.environment}-ssmmessages-endpoint"
+  })
+}
+
+resource "aws_vpc_endpoint" "ec2messages" {
+  count = var.enable_vpc_endpoints && var.enable_ssm_endpoints ? 1 : 0
+
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.ec2messages"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints[0].id]
+  private_dns_enabled = true
+
+  tags = merge(var.tags, {
+    Name = "${var.project}-${var.environment}-ec2messages-endpoint"
+  })
+}

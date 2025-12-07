@@ -104,6 +104,24 @@ variable "database_app_username" {
   default     = "app_user"
 }
 
+variable "create_db_users" {
+  description = "Create database users (api_user, migrate_user) via PostgreSQL provider. Requires network access to DB."
+  type        = bool
+  default     = false
+}
+
+variable "api_db_username" {
+  description = "Username for API database user"
+  type        = string
+  default     = "api_user"
+}
+
+variable "migrate_db_username" {
+  description = "Username for migration database user"
+  type        = string
+  default     = "migrate_user"
+}
+
 variable "database_type" {
   description = "Database type: 'aurora' for Aurora Serverless v2, 'rds' for single RDS instance"
   type        = string
@@ -340,4 +358,25 @@ variable "github_oidc_provider_arn" {
 variable "github_repository" {
   description = "GitHub repository (owner/repo)"
   type        = string
+}
+
+# -----------------------------------------------------------------------------
+# Bastion Host
+# -----------------------------------------------------------------------------
+variable "enable_bastion" {
+  description = "Enable bastion host for Session Manager access to private resources"
+  type        = bool
+  default     = false
+}
+
+variable "bastion_instance_type" {
+  description = "EC2 instance type for bastion"
+  type        = string
+  default     = "t4g.nano"
+}
+
+variable "enable_ssm_endpoints" {
+  description = "Enable SSM VPC Endpoints for Session Manager (required for bastion without NAT)"
+  type        = bool
+  default     = false
 }

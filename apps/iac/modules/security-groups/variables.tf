@@ -25,6 +25,12 @@ variable "admin_cidr_blocks" {
   default     = null
 }
 
+variable "bastion_security_group_id" {
+  description = "Security group ID of the bastion host for database access"
+  type        = string
+  default     = null
+}
+
 variable "tags" {
   description = "Additional tags for resources"
   type        = map(string)

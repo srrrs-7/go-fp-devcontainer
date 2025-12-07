@@ -37,3 +37,26 @@ output "secret_arn" {
   description = "Secrets Manager secret ARN for DB credentials"
   value       = aws_secretsmanager_secret.db_password.arn
 }
+
+# -----------------------------------------------------------------------------
+# Database Users Outputs
+# -----------------------------------------------------------------------------
+output "api_user_secret_arn" {
+  description = "Secrets Manager secret ARN for API user credentials"
+  value       = var.create_db_users ? aws_secretsmanager_secret.api_user[0].arn : null
+}
+
+output "migrate_user_secret_arn" {
+  description = "Secrets Manager secret ARN for migrate user credentials"
+  value       = var.create_db_users ? aws_secretsmanager_secret.migrate_user[0].arn : null
+}
+
+output "api_db_username" {
+  description = "API database username"
+  value       = var.create_db_users ? var.api_db_username : null
+}
+
+output "migrate_db_username" {
+  description = "Migration database username"
+  value       = var.create_db_users ? var.migrate_db_username : null
+}

@@ -126,3 +126,15 @@ resource "aws_vpc_security_group_ingress_rule" "aurora_from_admin" {
   ip_protocol       = "tcp"
   cidr_ipv4         = var.admin_cidr_blocks[count.index]
 }
+
+# Allow access from bastion host via Session Manager
+resource "aws_vpc_security_group_ingress_rule" "aurora_from_bastion" {
+  count = var.bastion_security_group_id != null ? 1 : 0
+
+  security_group_id            = aws_security_group.aurora.id
+  description                  = "From bastion host"
+  from_port                    = 5432
+  to_port                      = 5432
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = var.bastion_security_group_id
+}

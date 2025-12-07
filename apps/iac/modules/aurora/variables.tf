@@ -181,3 +181,24 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# -----------------------------------------------------------------------------
+# Database Users Configuration
+# -----------------------------------------------------------------------------
+variable "create_db_users" {
+  description = "Whether to create database users (api_user, migrate_user)"
+  type        = bool
+  default     = false
+}
+
+variable "api_db_username" {
+  description = "Username for API database user"
+  type        = string
+  default     = "api_user"
+}
+
+variable "migrate_db_username" {
+  description = "Username for migration database user"
+  type        = string
+  default     = "migrate_user"
+}
