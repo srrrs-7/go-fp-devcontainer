@@ -58,9 +58,15 @@ variable "enable_flow_logs" {
 }
 
 variable "enable_vpc_endpoints" {
-  description = "Enable VPC Endpoints"
+  description = "Enable VPC Endpoints (S3 Gateway)"
   type        = bool
   default     = true
+}
+
+variable "enable_interface_endpoints" {
+  description = "Enable Interface VPC Endpoints (ECR, Logs, SecretsManager). Disable for cost savings."
+  type        = bool
+  default     = false # Disabled for dev to save ~$30/month
 }
 
 # -----------------------------------------------------------------------------
@@ -98,6 +104,13 @@ variable "database_app_username" {
   default     = "app_user"
 }
 
+variable "database_type" {
+  description = "Database type: 'aurora' for Aurora Serverless v2, 'rds' for single RDS instance"
+  type        = string
+  default     = "rds" # RDS is cheaper for dev
+}
+
+# Aurora settings (used when database_type = "aurora")
 variable "aurora_engine_version" {
   description = "Aurora PostgreSQL engine version"
   type        = string
@@ -146,6 +159,31 @@ variable "aurora_skip_final_snapshot" {
   default     = true # Skip for dev
 }
 
+# RDS settings (used when database_type = "rds")
+variable "rds_engine_version" {
+  description = "RDS PostgreSQL engine version"
+  type        = string
+  default     = "16.4"
+}
+
+variable "rds_instance_class" {
+  description = "RDS instance class"
+  type        = string
+  default     = "db.t4g.micro" # Smallest ARM-based instance (~$13/month)
+}
+
+variable "rds_allocated_storage" {
+  description = "RDS allocated storage in GB"
+  type        = number
+  default     = 20
+}
+
+variable "rds_backup_retention_period" {
+  description = "RDS backup retention period in days"
+  type        = number
+  default     = 1 # Minimum for cost savings
+}
+
 # -----------------------------------------------------------------------------
 # ECS
 # -----------------------------------------------------------------------------
@@ -189,6 +227,12 @@ variable "ecs_enable_execute_command" {
   description = "Enable ECS Exec for debugging"
   type        = bool
   default     = true # Enabled for dev
+}
+
+variable "ecs_use_fargate_spot" {
+  description = "Use Fargate Spot for cost savings (up to 70% cheaper, but can be interrupted)"
+  type        = bool
+  default     = true # Enabled for dev to save costs
 }
 
 # -----------------------------------------------------------------------------

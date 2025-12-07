@@ -55,6 +55,12 @@ variable "enable_vpc_endpoints" {
   default     = true
 }
 
+variable "enable_interface_endpoints" {
+  description = "Enable Interface VPC Endpoints (ECR, Logs, SecretsManager). Set to false for cost savings - requires NAT Gateway."
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Additional tags for resources"
   type        = map(string)

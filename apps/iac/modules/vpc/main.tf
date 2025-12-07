@@ -283,7 +283,7 @@ resource "aws_vpc_endpoint" "s3" {
 }
 
 resource "aws_vpc_endpoint" "ecr_api" {
-  count = var.enable_vpc_endpoints ? 1 : 0
+  count = var.enable_vpc_endpoints && var.enable_interface_endpoints ? 1 : 0
 
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.${var.aws_region}.ecr.api"
@@ -298,7 +298,7 @@ resource "aws_vpc_endpoint" "ecr_api" {
 }
 
 resource "aws_vpc_endpoint" "ecr_dkr" {
-  count = var.enable_vpc_endpoints ? 1 : 0
+  count = var.enable_vpc_endpoints && var.enable_interface_endpoints ? 1 : 0
 
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.${var.aws_region}.ecr.dkr"
@@ -313,7 +313,7 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
 }
 
 resource "aws_vpc_endpoint" "logs" {
-  count = var.enable_vpc_endpoints ? 1 : 0
+  count = var.enable_vpc_endpoints && var.enable_interface_endpoints ? 1 : 0
 
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.${var.aws_region}.logs"
@@ -328,7 +328,7 @@ resource "aws_vpc_endpoint" "logs" {
 }
 
 resource "aws_vpc_endpoint" "secretsmanager" {
-  count = var.enable_vpc_endpoints ? 1 : 0
+  count = var.enable_vpc_endpoints && var.enable_interface_endpoints ? 1 : 0
 
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.${var.aws_region}.secretsmanager"
@@ -343,7 +343,7 @@ resource "aws_vpc_endpoint" "secretsmanager" {
 }
 
 resource "aws_security_group" "vpc_endpoints" {
-  count = var.enable_vpc_endpoints ? 1 : 0
+  count = var.enable_vpc_endpoints && var.enable_interface_endpoints ? 1 : 0
 
   name        = "${var.project}-${var.environment}-vpc-endpoints-sg"
   description = "Security group for VPC endpoints"

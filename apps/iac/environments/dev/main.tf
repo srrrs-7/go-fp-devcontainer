@@ -15,14 +15,16 @@ terraform {
     }
   }
 
-  backend "s3" {
-    # Configure via backend.tfvars or -backend-config
-    # bucket         = "your-terraform-state-bucket"
-    # key            = "dev/terraform.tfstate"
-    # region         = "ap-northeast-1"
-    # encrypt        = true
-    # dynamodb_table = "terraform-lock"
-  }
+  # Dev環境: ローカルバックエンド（状態ファイルはローカルに保存）
+  # チーム開発やCI/CDが必要な場合はS3バックエンドに変更してください
+  #
+  # backend "s3" {
+  #   bucket         = "your-terraform-state-bucket"
+  #   key            = "dev/terraform.tfstate"
+  #   region         = "ap-northeast-1"
+  #   encrypt        = true
+  #   dynamodb_table = "terraform-lock"
+  # }
 }
 
 provider "aws" {
@@ -72,10 +74,11 @@ module "vpc" {
   vpc_cidr    = var.vpc_cidr
   az_count    = var.az_count
 
-  enable_nat_gateway   = var.enable_nat_gateway
-  single_nat_gateway   = var.single_nat_gateway
-  enable_flow_logs     = var.enable_flow_logs
-  enable_vpc_endpoints = var.enable_vpc_endpoints
+  enable_nat_gateway         = var.enable_nat_gateway
+  single_nat_gateway         = var.single_nat_gateway
+  enable_flow_logs           = var.enable_flow_logs
+  enable_vpc_endpoints       = var.enable_vpc_endpoints
+  enable_interface_endpoints = var.enable_interface_endpoints
 
   tags = local.tags
 }
@@ -109,9 +112,12 @@ module "ecr_api" {
 }
 
 # -----------------------------------------------------------------------------
-# Aurora PostgreSQL
+# Database (Aurora or RDS based on database_type)
 # -----------------------------------------------------------------------------
+
+# Aurora PostgreSQL (when database_type = "aurora")
 module "aurora" {
+  count  = var.database_type == "aurora" ? 1 : 0
   source = "../../modules/aurora"
 
   project              = var.project
@@ -134,6 +140,43 @@ module "aurora" {
   skip_final_snapshot     = var.aurora_skip_final_snapshot
 
   tags = local.tags
+}
+
+# RDS PostgreSQL (when database_type = "rds") - Cost optimized for dev
+module "rds" {
+  count  = var.database_type == "rds" ? 1 : 0
+  source = "../../modules/rds"
+
+  project         = var.project
+  environment     = var.environment
+  database_name   = var.database_name
+  master_username = var.database_master_username
+  engine_version  = var.rds_engine_version
+
+  instance_class    = var.rds_instance_class
+  allocated_storage = var.rds_allocated_storage
+
+  db_subnet_group_name = module.vpc.db_subnet_group_name
+  security_group_ids   = [module.security_groups.aurora_security_group_id]
+
+  enable_iam_auth         = true
+  backup_retention_period = var.rds_backup_retention_period
+  deletion_protection     = false
+  skip_final_snapshot     = true
+
+  # Cost savings: disable optional features
+  enable_performance_insights = false
+  enable_cloudwatch_logs      = false
+
+  tags = local.tags
+}
+
+# Local values for database outputs (works with either Aurora or RDS)
+locals {
+  db_endpoint    = var.database_type == "aurora" ? module.aurora[0].cluster_endpoint : module.rds[0].endpoint
+  db_port        = var.database_type == "aurora" ? module.aurora[0].cluster_port : module.rds[0].port
+  db_name        = var.database_type == "aurora" ? module.aurora[0].database_name : module.rds[0].database_name
+  db_resource_id = var.database_type == "aurora" ? module.aurora[0].cluster_resource_id : module.rds[0].resource_id
 }
 
 # -----------------------------------------------------------------------------
@@ -212,22 +255,29 @@ module "ecs" {
   autoscaling_min_capacity = var.ecs_min_capacity
   autoscaling_max_capacity = var.ecs_max_capacity
 
-  rds_resource_id     = module.aurora.cluster_resource_id
+  # Fargate Spot for cost savings (up to 70% cheaper)
+  enable_fargate_spot = var.ecs_use_fargate_spot
+  fargate_weight      = var.ecs_use_fargate_spot ? 0 : 1
+  fargate_spot_weight = var.ecs_use_fargate_spot ? 1 : 0
+  fargate_base_count  = 0
+
+  # Database connection (works with both Aurora and RDS)
+  rds_resource_id     = local.db_resource_id
   rds_db_username     = var.database_app_username
   enable_rds_iam_auth = true
 
   environment_variables = [
     {
       name  = "DB_HOST"
-      value = module.aurora.cluster_endpoint
+      value = local.db_endpoint
     },
     {
       name  = "DB_PORT"
-      value = tostring(module.aurora.cluster_port)
+      value = tostring(local.db_port)
     },
     {
       name  = "DB_NAME"
-      value = module.aurora.database_name
+      value = local.db_name
     },
     {
       name  = "DB_USER"
@@ -240,6 +290,9 @@ module "ecs" {
   ]
 
   enable_execute_command = var.ecs_enable_execute_command
+
+  # Cost savings: disable Container Insights
+  enable_container_insights = false
 
   tags = local.tags
 }
@@ -413,7 +466,7 @@ module "iam" {
     module.ecs.task_role_arn
   ]
 
-  rds_resource_id     = module.aurora.cluster_resource_id
+  rds_resource_id     = local.db_resource_id
   rds_db_username     = var.database_app_username
   enable_rds_iam_auth = true
 
