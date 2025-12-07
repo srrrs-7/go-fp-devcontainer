@@ -122,6 +122,51 @@ resource "aws_iam_role_policy" "github_actions_ecs" {
   })
 }
 
+# ECS RunTask permissions (for migration jobs)
+resource "aws_iam_role_policy" "github_actions_ecs_run_task" {
+  count = length(var.ecs_job_task_definition_arns) > 0 ? 1 : 0
+
+  name = "${var.project}-${var.environment}-github-actions-ecs-run-task"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "RunTask"
+        Effect = "Allow"
+        Action = [
+          "ecs:RunTask"
+        ]
+        Resource = var.ecs_job_task_definition_arns
+        Condition = {
+          ArnEquals = {
+            "ecs:cluster" = "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:cluster/${var.ecs_cluster_name}"
+          }
+        }
+      },
+      {
+        Sid    = "DescribeTasks"
+        Effect = "Allow"
+        Action = [
+          "ecs:DescribeTasks",
+          "ecs:StopTask"
+        ]
+        Resource = "arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task/${var.ecs_cluster_name}/*"
+      },
+      {
+        Sid    = "GetLogEvents"
+        Effect = "Allow"
+        Action = [
+          "logs:GetLogEvents",
+          "logs:FilterLogEvents"
+        ]
+        Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/${var.project}-${var.environment}/*:*"
+      }
+    ]
+  })
+}
+
 # RDS IAM Auth permissions (for migrations)
 resource "aws_iam_role_policy" "github_actions_rds" {
   count = var.enable_rds_iam_auth ? 1 : 0

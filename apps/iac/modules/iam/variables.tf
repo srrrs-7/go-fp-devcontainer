@@ -45,6 +45,18 @@ variable "ecs_task_role_arns" {
   type        = list(string)
 }
 
+variable "ecs_job_task_definition_arns" {
+  description = "ECS Job task definition ARNs (for RunTask)"
+  type        = list(string)
+  default     = []
+}
+
+variable "vpc_subnet_arns" {
+  description = "VPC subnet ARNs (for RunTask network configuration)"
+  type        = list(string)
+  default     = []
+}
+
 variable "rds_resource_id" {
   description = "RDS cluster resource ID for IAM auth"
   type        = string

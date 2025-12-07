@@ -111,6 +111,17 @@ module "ecr_api" {
   tags = local.tags
 }
 
+module "ecr_migrate" {
+  source = "../../modules/ecr"
+
+  project         = var.project
+  environment     = var.environment
+  repository_name = "migrate"
+  scan_on_push    = true
+
+  tags = local.tags
+}
+
 # -----------------------------------------------------------------------------
 # Database (Aurora or RDS based on database_type)
 # -----------------------------------------------------------------------------
@@ -298,6 +309,60 @@ module "ecs" {
 }
 
 # -----------------------------------------------------------------------------
+# ECS Job (Database Migration)
+# -----------------------------------------------------------------------------
+module "ecs_migrate" {
+  source = "../../modules/ecs-job"
+
+  project        = var.project
+  environment    = var.environment
+  aws_region     = var.aws_region
+  job_name       = "migrate"
+  container_name = "migrate"
+  container_image = "${module.ecr_migrate.repository_url}:latest"
+
+  task_cpu    = 256
+  task_memory = 512
+
+  # Database connection
+  environment_variables = [
+    {
+      name  = "DB_HOST"
+      value = local.db_endpoint
+    },
+    {
+      name  = "DB_PORT"
+      value = tostring(local.db_port)
+    },
+    {
+      name  = "DB_DBNAME"
+      value = local.db_name
+    },
+    {
+      name  = "DB_USERNAME"
+      value = var.database_app_username
+    }
+  ]
+
+  # Inject DB password from Secrets Manager
+  secrets = var.database_type == "rds" ? [
+    {
+      name      = "DB_PASSWORD"
+      valueFrom = "${module.rds[0].secret_arn}:password::"
+    }
+  ] : []
+
+  db_secret_arn = var.database_type == "rds" ? module.rds[0].secret_arn : null
+
+  # RDS IAM auth (for Aurora)
+  enable_rds_iam_auth = var.database_type == "aurora"
+  rds_resource_id     = var.database_type == "aurora" ? local.db_resource_id : null
+  rds_db_username     = var.database_type == "aurora" ? var.database_app_username : null
+
+  tags = local.tags
+}
+
+# -----------------------------------------------------------------------------
 # S3 (Static Assets)
 # -----------------------------------------------------------------------------
 module "s3_assets" {
@@ -459,12 +524,20 @@ module "iam" {
   github_oidc_provider_arn    = var.github_oidc_provider_arn
   github_repository           = var.github_repository
 
-  ecr_repository_arns = [module.ecr_api.repository_arn]
-  ecs_cluster_name    = module.ecs.cluster_name
+  ecr_repository_arns = [
+    module.ecr_api.repository_arn,
+    module.ecr_migrate.repository_arn
+  ]
+  ecs_cluster_name = module.ecs.cluster_name
   ecs_task_role_arns = [
     module.ecs.execution_role_arn,
-    module.ecs.task_role_arn
+    module.ecs.task_role_arn,
+    module.ecs_migrate.execution_role_arn,
+    module.ecs_migrate.task_role_arn
   ]
+
+  # ECS Job (migration) permissions
+  ecs_job_task_definition_arns = [module.ecs_migrate.task_definition_arn]
 
   rds_resource_id     = local.db_resource_id
   rds_db_username     = var.database_app_username
