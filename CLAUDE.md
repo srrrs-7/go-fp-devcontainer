@@ -21,6 +21,10 @@ Go workspace: `apps/go.work` manages `api`, `pkgs`, and `web` modules.
 ## Development Commands
 
 ```bash
+# Local services (from repo root)
+docker compose up -d          # Start all services (api, web, db)
+docker compose up -d db       # Start only PostgreSQL
+
 # Tests (all modules)
 make test
 
@@ -28,15 +32,17 @@ make test
 cd apps/api && go test -run TestListHandler ./src/routes/tasks/
 
 # Code quality
-make fmt      # Format
+make fmt      # Format Go code
 make vet      # Static analysis
 make tidy     # go mod tidy
+make tf-fmt   # Format Terraform files
 
 # Database migrations (Atlas)
 make atlas-diff              # Generate migration from schema changes
 make atlas-apply             # Apply pending migrations
 make atlas-new NAME=<name>   # Create new migration file
 make atlas-status            # Show migration status
+# Use ATLAS_ENV=docker for Docker environment: make atlas-apply ATLAS_ENV=docker
 
 # sqlc code generation
 make sqlc-gen      # Generate Go code from SQL queries
@@ -132,23 +138,39 @@ HTTP handlers tested with `httptest.NewRequest` and `httptest.NewRecorder`.
 Terraform modules for AWS deployment:
 
 ```
-iac/
+apps/iac/
   environments/       # Environment configs (dev, stg, prd)
   modules/           # Reusable Terraform modules
     vpc/             # Multi-AZ VPC with public/private/database subnets
     ecs/             # ECS Fargate service
     ecr/             # Container registry
     alb/             # Application Load Balancer
-    aurora/          # Aurora PostgreSQL
-    cognito/         # Authentication
-    cloudfront/      # CDN
+    aurora/          # Aurora PostgreSQL Serverless v2
+    cognito/         # Authentication (MFA-enabled)
+    cloudfront/      # CDN (S3 + ALB origins)
     s3/              # Static assets
     waf/             # Web Application Firewall
-    ...
+    acm/             # SSL/TLS certificates
+    route53/         # DNS records
+    iam/             # GitHub Actions OIDC, ECS task roles
+    security-groups/ # ALB, ECS, Aurora security groups
 ```
 
 Naming convention: `${project}-${environment}-${resource}`
 
-## CI Pipeline
+Terraform setup:
+```bash
+cd apps/iac/environments/dev
+cp backend.hcl.example backend.hcl     # Configure S3 state backend
+cp terraform.tfvars.example terraform.tfvars  # Set environment variables
+terraform init -backend-config=backend.hcl
+terraform plan && terraform apply
+```
 
-GitHub Actions runs in devcontainer: `make vet && make test`
+## CI/CD Pipeline
+
+**CI**: GitHub Actions runs in devcontainer on push/PR to main: `make vet && make test`
+
+**CD**: Triggered by push to `main` (→ dev) or manual workflow dispatch (→ dev/stg/prd)
+- Flow: Database Migration → Build & Push to ECR → Deploy to ECS
+- Environments configured in GitHub Settings → Environments with AWS OIDC credentials
