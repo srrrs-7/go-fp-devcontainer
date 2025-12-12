@@ -2,8 +2,8 @@ package tasks
 
 import (
 	"api/src/domain/model"
-	"api/src/infra/rds/task_repository"
 	"api/src/routes/response"
+	usecase "api/src/usecase/task"
 	"net/http"
 	"utils/types"
 )
@@ -19,7 +19,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	res := types.Pipe2(
 		newGetRequest(r).validate(),
 		func(req getRequest) types.Result[model.Task, model.AppError] {
-			return task_repository.FindTaskByID(model.NewTaskID(req.ID))
+			return usecase.GetTask(model.NewTaskID(req.ID))
 		},
 		func(task model.Task) getResponse {
 			return getResponse{

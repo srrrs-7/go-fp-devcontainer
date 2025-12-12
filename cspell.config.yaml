@@ -25,3 +25,4 @@ words:
   - tfstate
   - tfvars
   - tzdata
+  - usecase

@@ -2,8 +2,8 @@ package tasks
 
 import (
 	"api/src/domain/model"
-	"api/src/infra/rds/task_repository"
 	"api/src/routes/response"
+	usecase "api/src/usecase/task"
 	"net/http"
 	"utils/types"
 )
@@ -19,7 +19,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	res := types.Pipe2(
 		newPostRequest(r).validate(),
 		func(req postRequest) types.Result[model.Task, model.AppError] {
-			return task_repository.CreateTask(
+			return usecase.CreateTask(
 				model.TaskTitle(req.Title),
 				model.TaskDescription(req.Description),
 			)

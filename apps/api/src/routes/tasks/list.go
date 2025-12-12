@@ -2,8 +2,8 @@ package tasks
 
 import (
 	"api/src/domain/model"
-	"api/src/infra/rds/task_repository"
 	"api/src/routes/response"
+	usecase "api/src/usecase/task"
 	"net/http"
 	"utils/types"
 )
@@ -23,7 +23,7 @@ func ListHandler(w http.ResponseWriter, r *http.Request) {
 	res := types.Pipe2(
 		newListRequest(r).validate(),
 		func(req listRequest) types.Result[[]model.Task, model.AppError] {
-			return task_repository.FindAllTasks()
+			return usecase.ListTasks()
 		},
 		func(tasks []model.Task) listResponse {
 			items := make([]taskItem, len(tasks))
