@@ -9,6 +9,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      cache:
+        condition: service_healthy
+      queue:
+        condition: service_healthy
   db:
     image: postgres:18
     volumes:
@@ -19,6 +23,30 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  
+  cache:
+    image: redis:alpine
+    volumes:
+      - cache-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  # elasticmq
+  queue:
+    image: softwaremill/elasticmq
+    ports:
+      - "9324:9324"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9324/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pg-data:
+  cache-data:

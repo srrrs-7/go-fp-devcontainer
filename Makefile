@@ -16,9 +16,10 @@ dev-cp:
 .PHONY: cp fmt vet test tidy graph env
 
 API_MOD = ./apps/api
+AUTH_MOD = ./apps/auth
 PKGS_MOD = ./apps/pkgs
 WEB_MOD = ./apps/web
-MODS = $(API_MOD) $(PKGS_MOD)
+MODS = $(API_MOD) $(AUTH_MOD) $(PKGS_MOD)
 
 cp:
 	cp compose.override.yaml.example compose.override.yaml
