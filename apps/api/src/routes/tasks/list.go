@@ -25,7 +25,8 @@ func NewListHandler(q db.Querier) http.HandlerFunc {
 		res := types.Pipe2(
 			newListRequest(r).validate(),
 			func(req listRequest) types.Result[[]model.Task, model.AppError] {
-				return usecase.ListTasks(q, r.Context())
+				input := usecase.ListInput{}
+				return usecase.ListTasks(q, r.Context(), input)
 			},
 			func(tasks []model.Task) listResponse {
 				items := make([]taskItem, len(tasks))
