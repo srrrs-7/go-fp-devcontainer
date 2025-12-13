@@ -1,7 +1,8 @@
 services:
   dev:
     environment:
-      DB_URI: postgresql://postgres:postgres@db:5432/test
+      DB_URI: postgresql://postgres:postgres@db:5432/test?sslmode=disable
+      DB_MIGRATE_URI: postgresql://postgres:postgres@db:5432?sslmode=disable
       CACHE_URI: redis://cache:6379
       QUEUE_URI: redis://queue:9324
   db:
