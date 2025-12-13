@@ -27,10 +27,20 @@ variable "db_password" {
   default = getenv("DB_PASSWORD")
 }
 
+variable "db_uri" {
+  type    = string
+  default = getenv("DB_URI")
+}
+
+variable "dev_db_uri" {
+  type    = string
+  default = getenv("DEV_DB_URI")
+}
+
 // Construct database URL from environment variables
 locals {
-  db_url = "postgres://${var.db_user}:${var.db_password}@${var.db_host}:${var.db_port}/${var.db_name}?sslmode=disable"
-  dev_db_url = "postgres://${var.db_user}:${var.db_password}@${var.db_host}:${var.db_port}/${var.db_name}_dev?sslmode=disable"
+  db_url = var.db_uri != "" ? var.db_uri : "postgres://${var.db_user}:${var.db_password}@${var.db_host}:${var.db_port}/${var.db_name}?sslmode=disable"
+  dev_db_url = var.dev_db_uri != "" ? var.dev_db_uri : "postgres://${var.db_user}:${var.db_password}@${var.db_host}:${var.db_port}/${var.db_name}_dev?sslmode=disable"
 }
 
 // Environment configuration
