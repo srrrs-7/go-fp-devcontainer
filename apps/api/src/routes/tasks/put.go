@@ -13,7 +13,7 @@ type putResponse struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	Completed   bool   `json:"completed"`
+	Status      string `json:"status"`
 }
 
 func NewPutHandler(q db.Querier) http.HandlerFunc {
@@ -25,7 +25,7 @@ func NewPutHandler(q db.Querier) http.HandlerFunc {
 					ID:          model.NewTaskID(req.ID),
 					Title:       model.TaskTitle(req.Title),
 					Description: model.TaskDescription(req.Description),
-					Completed:   model.TaskCompleted(req.Completed),
+					Status:      model.TaskStatus(req.Status),
 				}
 				return usecase.UpdateTask(
 					q,
@@ -38,7 +38,7 @@ func NewPutHandler(q db.Querier) http.HandlerFunc {
 					ID:          task.ID.String(),
 					Title:       task.Title.String(),
 					Description: task.Description.String(),
-					Completed:   task.Completed.Bool(),
+					Status:      task.Status.String(),
 				}
 			},
 		)

@@ -33,7 +33,7 @@ type listRequest struct {
 	ID          string `json:"id" validate:"required,uuid4"`
 	Title       string `json:"title" validate:"required,min=3,max=100"`
 	Description string `json:"description" validate:"max=500"`
-	Completed   bool   `json:"completed"`
+	Status      string `json:"status"`
 }
 
 func newListRequest(r *http.Request) listRequest {
@@ -41,7 +41,7 @@ func newListRequest(r *http.Request) listRequest {
 		ID:          r.URL.Query().Get("id"),
 		Title:       r.URL.Query().Get("title"),
 		Description: r.URL.Query().Get("description"),
-		Completed:   r.URL.Query().Get("completed") == "true",
+		Status:      r.URL.Query().Get("status"),
 	}
 }
 
@@ -89,7 +89,7 @@ type putRequest struct {
 	ID          string `json:"id" validate:"required,uuid4"`
 	Title       string `json:"title" validate:"required,min=3,max=100"`
 	Description string `json:"description" validate:"max=500"`
-	Completed   bool   `json:"completed"`
+	Status      string `json:"status"`
 }
 
 func newPutRequest(r *http.Request) putRequest {
@@ -97,7 +97,7 @@ func newPutRequest(r *http.Request) putRequest {
 		ID:          r.FormValue("id"),
 		Title:       r.FormValue("title"),
 		Description: r.FormValue("description"),
-		Completed:   r.FormValue("completed") == "true",
+		Status:      r.FormValue("status"),
 	}
 }
 

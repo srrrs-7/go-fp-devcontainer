@@ -22,7 +22,7 @@ func FindTaskByID(q db.Querier, ctx context.Context, id model.TaskID) types.Resu
 				ID:          model.TaskID(t.ID),
 				Title:       model.TaskTitle(t.Title),
 				Description: model.TaskDescription(t.Description.String),
-				Completed:   model.TaskCompleted(t.Status == "completed"),
+				Status:      model.TaskStatus(t.Status),
 			}
 		},
 	)
@@ -43,7 +43,7 @@ func FindAllTasks(q db.Querier, ctx context.Context) types.Result[[]model.Task, 
 					ID:          model.TaskID(task.ID),
 					Title:       model.TaskTitle(task.Title),
 					Description: model.TaskDescription(task.Description.String),
-					Completed:   model.TaskCompleted(task.Status == "completed"),
+					Status:      model.TaskStatus(task.Status),
 				})
 			}
 			return result

@@ -19,7 +19,7 @@ func CreateTask(q db.Querier, ctx context.Context, input CreateInput) types.Resu
 	cmd := model.TaskCmd{
 		Title:       input.Title,
 		Description: input.Description,
-		Completed:   false, // Default value
+		Status:      model.TaskStatusPending, // Default value
 	}
 	return task_repository.CreateTask(q, ctx, cmd)
 }

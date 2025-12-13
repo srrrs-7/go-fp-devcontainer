@@ -16,8 +16,8 @@ func CreateTask(q db.Querier, ctx context.Context, cmd model.TaskCmd) types.Resu
 			types.FromPair(q.CreateTask(ctx, db.CreateTaskParams{
 				Title:       cmd.Title.String(),
 				Description: sql.NullString{String: cmd.Description.String(), Valid: true},
-				Status:      "pending", // Default status
-				Priority:    "medium",  // Default priority
+				Status:      model.TaskStatusPending.String(), // Default status
+				Priority:    "medium",                         // Default priority
 			})),
 			func(e error) model.AppError {
 				return model.NewDatabaseError(e, "TaskRepository")
@@ -28,18 +28,20 @@ func CreateTask(q db.Querier, ctx context.Context, cmd model.TaskCmd) types.Resu
 				ID:          model.TaskID(t.ID),
 				Title:       model.TaskTitle(t.Title),
 				Description: model.TaskDescription(t.Description.String),
-				Completed:   model.TaskCompleted(t.Status == "completed"),
+				Status:      model.TaskStatus(t.Status),
 			}
 		},
 	)
 }
 
 func UpdateTask(q db.Querier, ctx context.Context, id model.TaskID, cmd model.TaskCmd) types.Result[model.Task, model.AppError] {
-	// Status logic: if completed is true -> "completed", else "pending" (or keep existing? simple logic for now)
-	status := "pending"
-	if cmd.Completed.Bool() {
-		status = "completed"
+	// Status logic: use cmd.Status if provided, else pending? Or default logic?
+	// Assuming cmd.Status is populated correctly by caller
+	status := cmd.Status.String()
+	if status == "" {
+		status = model.TaskStatusPending.String()
 	}
+
 	// Note: priority and due_date are not yet in domain model, setting defaults or ignoring
 	return types.Map(
 		types.MapErr(
@@ -59,7 +61,7 @@ func UpdateTask(q db.Querier, ctx context.Context, id model.TaskID, cmd model.Ta
 				ID:          model.TaskID(t.ID),
 				Title:       model.TaskTitle(t.Title),
 				Description: model.TaskDescription(t.Description.String),
-				Completed:   model.TaskCompleted(t.Status == "completed"),
+				Status:      model.TaskStatus(t.Status),
 			}
 		},
 	)

@@ -35,13 +35,17 @@ func (t TaskDescription) String() string {
 	return string(t)
 }
 
-// TaskCompleted represents the completion status of a task.
-// True indicates the task is completed, false indicates it is pending.
-type TaskCompleted bool
+// TaskStatus represents the status of a task.
+type TaskStatus string
 
-// Bool returns the boolean value of the TaskCompleted status.
-func (t TaskCompleted) Bool() bool {
-	return bool(t)
+const (
+	TaskStatusPending   TaskStatus = "pending"
+	TaskStatusCompleted TaskStatus = "completed"
+)
+
+// String returns the string representation of the TaskStatus.
+func (t TaskStatus) String() string {
+	return string(t)
 }
 
 // Task represents a task entity in the domain model.
@@ -50,7 +54,7 @@ type Task struct {
 	ID          TaskID
 	Title       TaskTitle
 	Description TaskDescription
-	Completed   TaskCompleted
+	Status      TaskStatus
 }
 
 // TaskCmd represents a command to create or update a task.
@@ -58,5 +62,5 @@ type Task struct {
 type TaskCmd struct {
 	Title       TaskTitle
 	Description TaskDescription
-	Completed   TaskCompleted
+	Status      TaskStatus
 }

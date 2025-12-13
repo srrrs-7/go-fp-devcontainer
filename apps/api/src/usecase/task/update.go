@@ -13,7 +13,7 @@ type UpdateInput struct {
 	ID          model.TaskID
 	Title       model.TaskTitle
 	Description model.TaskDescription
-	Completed   model.TaskCompleted
+	Status      model.TaskStatus
 }
 
 // UpdateTask updates an existing task with the given parameters.
@@ -25,7 +25,7 @@ func UpdateTask(
 	cmd := model.TaskCmd{
 		Title:       input.Title,
 		Description: input.Description,
-		Completed:   input.Completed,
+		Status:      input.Status,
 	}
 	return task_repository.UpdateTask(q, ctx, input.ID, cmd)
 }
