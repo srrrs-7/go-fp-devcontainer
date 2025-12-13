@@ -4,7 +4,7 @@
 // Define environment variables from .devcontainer/compose.override.yaml
 variable "db_uri" {
   type    = string
-  default = getenv("DB_URI")
+  default = getenv("DB_MIGRATE_URI")
 }
 
 // Construct database URL from environment variables
