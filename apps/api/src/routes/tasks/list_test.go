@@ -1,10 +1,12 @@
 package tasks
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"utils/db/db"
 )
 
 func TestListHandler(t *testing.T) {
@@ -74,7 +76,16 @@ func TestListHandler(t *testing.T) {
 			req.URL.RawQuery = q.Encode()
 
 			w := httptest.NewRecorder()
-			ListHandler(w, req)
+
+			// Reset mock for each test if needed or create new one
+			mockDB := &MockQuerier{
+				ListTasksFunc: func(ctx context.Context) ([]db.Task, error) {
+					return []db.Task{}, nil
+				},
+			}
+
+			handler := NewListHandler(mockDB)
+			handler.ServeHTTP(w, req)
 
 			resp := w.Result()
 			if resp.StatusCode != tt.expected.statusCode {

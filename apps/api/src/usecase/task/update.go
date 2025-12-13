@@ -3,15 +3,29 @@ package task
 import (
 	"api/src/domain/model"
 	"api/src/infra/rds/task_repository"
+	"context"
+	"utils/db/db"
 	"utils/types"
 )
 
+// UpdateInput represents the input data for updating a task.
+type UpdateInput struct {
+	ID          model.TaskID
+	Title       model.TaskTitle
+	Description model.TaskDescription
+	Completed   model.TaskCompleted
+}
+
 // UpdateTask updates an existing task with the given parameters.
 func UpdateTask(
-	id model.TaskID,
-	title model.TaskTitle,
-	description model.TaskDescription,
-	completed model.TaskCompleted,
+	q db.Querier,
+	ctx context.Context,
+	input UpdateInput,
 ) types.Result[model.Task, model.AppError] {
-	return task_repository.UpdateTask(id, title, description, completed)
+	cmd := model.TaskCmd{
+		Title:       input.Title,
+		Description: input.Description,
+		Completed:   input.Completed,
+	}
+	return task_repository.UpdateTask(q, ctx, input.ID, cmd)
 }

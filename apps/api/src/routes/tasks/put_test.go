@@ -1,12 +1,14 @@
 package tasks
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"utils/db/db"
 )
 
 func TestPutHandler(t *testing.T) {
@@ -88,7 +90,21 @@ func TestPutHandler(t *testing.T) {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 			w := httptest.NewRecorder()
-			PutHandler(w, req)
+
+			mockDB := &MockQuerier{
+				UpdateTaskFunc: func(ctx context.Context, arg db.UpdateTaskParams) (db.Task, error) {
+					// Return dummy task
+					return db.Task{
+						ID:          arg.ID,
+						Title:       arg.Title.String,
+						Description: arg.Description,
+						Status:      arg.Status.String,
+					}, nil
+				},
+			}
+
+			handler := NewPutHandler(mockDB)
+			handler.ServeHTTP(w, req)
 
 			resp := w.Result()
 			if resp.StatusCode != tt.expected.statusCode {

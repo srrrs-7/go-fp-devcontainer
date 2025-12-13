@@ -5,6 +5,10 @@ services:
       dockerfile: apps/web/.images/Dockerfile
     ports:
       - 3000:80
+    depends_on:
+      - db
+      - cache
+      - queue
 
   api:
     build:
@@ -12,6 +16,19 @@ services:
       dockerfile: apps/api/.images/Dockerfile
     ports:
       - 8080:8080
+    depends_on:
+      - db
+      - cache
+      - queue
+  
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/migrate/.images/Dockerfile
+    depends_on:
+      - db
+    environment:
+      DB_URI: postgresql://postgres:postgres@db:5432/test
   
   db:
     image: postgres:18
@@ -21,7 +38,29 @@ services:
       - 5432:5432
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d mydb"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  cache:
+    image: redis:alpine
+    volumes:
+      - cache-data:/data
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  queue:
+    image: softwaremill/elasticmq
+    ports:
+      - 9324:9324
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9324/health"]
       interval: 5s
       timeout: 5s
       retries: 5

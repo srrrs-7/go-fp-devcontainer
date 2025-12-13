@@ -1,10 +1,15 @@
 package tasks
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"utils/db/db"
+
+	"github.com/google/uuid"
 )
 
 func TestGetHandler(t *testing.T) {
@@ -67,7 +72,20 @@ func TestGetHandler(t *testing.T) {
 			req.URL.RawQuery = q.Encode()
 
 			w := httptest.NewRecorder()
-			GetHandler(w, req)
+
+			mockDB := &MockQuerier{
+				GetTaskFunc: func(ctx context.Context, id uuid.UUID) (db.Task, error) {
+					return db.Task{
+						ID:          id,
+						Title:       "Sample Task",
+						Description: sql.NullString{String: "Description", Valid: true},
+						Status:      "pending",
+					}, nil
+				},
+			}
+
+			handler := NewGetHandler(mockDB)
+			handler.ServeHTTP(w, req)
 
 			resp := w.Result()
 			if resp.StatusCode != tt.expected.statusCode {

@@ -15,6 +15,14 @@ func Err[T any, E any](err E) Result[T, E] {
 	return Result[T, E]{err: &err}
 }
 
+// FromPair converts a (value, error) pair to a Result
+func FromPair[T any](value T, err error) Result[T, error] {
+	if err != nil {
+		return Err[T, error](err)
+	}
+	return Ok[T, error](value)
+}
+
 // 判定メソッド
 func (r Result[T, E]) IsOk() bool {
 	return r.err == nil
@@ -22,6 +30,14 @@ func (r Result[T, E]) IsOk() bool {
 
 func (r Result[T, E]) IsErr() bool {
 	return r.err != nil
+}
+
+// データ取り出し
+func (r Result[T, E]) UnwrapOr(defaultValue T) T {
+	if r.err != nil {
+		return defaultValue
+	}
+	return *r.value
 }
 
 // Map系メソッド

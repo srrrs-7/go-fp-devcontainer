@@ -5,6 +5,7 @@ import (
 	"api/src/routes/response"
 	usecase "api/src/usecase/task"
 	"net/http"
+	"utils/db/db"
 	"utils/types"
 )
 
@@ -15,33 +16,40 @@ type putResponse struct {
 	Completed   bool   `json:"completed"`
 }
 
-func PutHandler(w http.ResponseWriter, r *http.Request) {
-	res := types.Pipe2(
-		newPutRequest(r).validate(),
-		func(req putRequest) types.Result[model.Task, model.AppError] {
-			return usecase.UpdateTask(
-				model.NewTaskID(req.ID),
-				model.TaskTitle(req.Title),
-				model.TaskDescription(req.Description),
-				model.TaskCompleted(req.Completed),
-			)
-		},
-		func(task model.Task) putResponse {
-			return putResponse{
-				ID:          task.ID.String(),
-				Title:       task.Title.String(),
-				Description: task.Description.String(),
-				Completed:   task.Completed.Bool(),
-			}
-		},
-	)
+func NewPutHandler(q db.Querier) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res := types.Pipe2(
+			newPutRequest(r).validate(),
+			func(req putRequest) types.Result[model.Task, model.AppError] {
+				input := usecase.UpdateInput{
+					ID:          model.NewTaskID(req.ID),
+					Title:       model.TaskTitle(req.Title),
+					Description: model.TaskDescription(req.Description),
+					Completed:   model.TaskCompleted(req.Completed),
+				}
+				return usecase.UpdateTask(
+					q,
+					r.Context(),
+					input,
+				)
+			},
+			func(task model.Task) putResponse {
+				return putResponse{
+					ID:          task.ID.String(),
+					Title:       task.Title.String(),
+					Description: task.Description.String(),
+					Completed:   task.Completed.Bool(),
+				}
+			},
+		)
 
-	res.Match(
-		func(resp putResponse) {
-			response.OK(w, resp)
-		},
-		func(e model.AppError) {
-			response.HandleAppError(w, e)
-		},
-	)
+		res.Match(
+			func(resp putResponse) {
+				response.OK(w, resp)
+			},
+			func(e model.AppError) {
+				response.HandleAppError(w, e)
+			},
+		)
+	}
 }

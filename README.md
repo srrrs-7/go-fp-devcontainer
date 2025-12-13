@@ -45,7 +45,7 @@ CD パイプラインを動作させるために、GitHub Environments の設定
 |----------|------|-----|
 | `AWS_REGION` | AWS リージョン | `ap-northeast-1` |
 | `AWS_ROLE_ARN` | OIDC 用 IAM Role ARN | `arn:aws:iam::123456789012:role/github-actions-role` |
-| `DB_HOST` | RDS エンドポイント | `mydb.xxxx.ap-northeast-1.rds.amazonaws.com` |
+| `DB_HOST` | RDS エンドポイント | `test.xxxx.ap-northeast-1.rds.amazonaws.com` |
 | `DB_PORT` | データベースポート | `5432` |
 | `DB_DBNAME` | データベース名 | `myapp` |
 | `DB_USERNAME` | IAM 認証用ユーザー名 | `app_user` |

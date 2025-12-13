@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"utils/db"
 	"utils/env"
 	"utils/logger"
 )
@@ -18,15 +19,29 @@ func init() {
 
 func main() {
 	// Get port from environment variable, default to 8080
-	port := env.GetString("PORT", "8080")
+	port := env.GetString("PORT").UnwrapOr("8080")
 
-	// Create router
-	router := routes.NewRouter()
+	// Initialize Database
+	dbAuth := env.GetString("DB_URI").UnwrapOr("")
+	if dbAuth == "" {
+		logger.Error("DB_URI environment variable is not set")
+		os.Exit(1)
+	}
+
+	databaseResult := db.Connect(dbAuth)
+	if databaseResult.IsErr() {
+		logger.Error("Failed to connect to database")
+		os.Exit(1)
+	}
+	dbConn := databaseResult.UnwrapOr(nil) // We checked IsErr, so this is safe or we can handle better
+
+	// Router
+	r := routes.NewRouter(dbConn)
 
 	// Configure server
 	srv := &http.Server{
 		Addr:         ":" + port,
-		Handler:      router,
+		Handler:      r,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,

@@ -38,6 +38,8 @@
     3000, // frontend dev server
     8080, // backend server
     5432, // PostgreSQL
-    24282 // serena
+    24282, // serena
+    6379, // redis
+    6380 // queue
   ]
 }

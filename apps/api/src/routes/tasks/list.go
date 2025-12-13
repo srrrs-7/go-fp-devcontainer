@@ -5,6 +5,7 @@ import (
 	"api/src/routes/response"
 	usecase "api/src/usecase/task"
 	"net/http"
+	"utils/db/db"
 	"utils/types"
 )
 
@@ -19,32 +20,34 @@ type taskItem struct {
 	Completed   bool   `json:"completed"`
 }
 
-func ListHandler(w http.ResponseWriter, r *http.Request) {
-	res := types.Pipe2(
-		newListRequest(r).validate(),
-		func(req listRequest) types.Result[[]model.Task, model.AppError] {
-			return usecase.ListTasks()
-		},
-		func(tasks []model.Task) listResponse {
-			items := make([]taskItem, len(tasks))
-			for i, task := range tasks {
-				items[i] = taskItem{
-					ID:          task.ID.String(),
-					Title:       task.Title.String(),
-					Description: task.Description.String(),
-					Completed:   task.Completed.Bool(),
+func NewListHandler(q db.Querier) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res := types.Pipe2(
+			newListRequest(r).validate(),
+			func(req listRequest) types.Result[[]model.Task, model.AppError] {
+				return usecase.ListTasks(q, r.Context())
+			},
+			func(tasks []model.Task) listResponse {
+				items := make([]taskItem, len(tasks))
+				for i, task := range tasks {
+					items[i] = taskItem{
+						ID:          task.ID.String(),
+						Title:       task.Title.String(),
+						Description: task.Description.String(),
+						Completed:   task.Completed.Bool(),
+					}
 				}
-			}
-			return listResponse{Tasks: items}
-		},
-	)
+				return listResponse{Tasks: items}
+			},
+		)
 
-	res.Match(
-		func(resp listResponse) {
-			response.OK(w, resp)
-		},
-		func(e model.AppError) {
-			response.HandleAppError(w, e)
-		},
-	)
+		res.Match(
+			func(resp listResponse) {
+				response.OK(w, resp)
+			},
+			func(e model.AppError) {
+				response.HandleAppError(w, e)
+			},
+		)
+	}
 }

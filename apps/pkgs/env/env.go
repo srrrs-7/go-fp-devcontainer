@@ -1,51 +1,50 @@
 package env
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
+	"utils/types"
 )
 
 // GetString returns the value of the environment variable named by the key.
-// If the variable is not present, it returns the defaultValue.
-func GetString(key, defaultValue string) string {
+func GetString(key string) types.Result[string, error] {
 	value := os.Getenv(key)
 	if value == "" {
-		return defaultValue
+		return types.Err[string](errors.New("environment variable not found: " + key))
 	}
-	return value
+	return types.Ok[string, error](value)
 }
 
 // GetInt returns the value of the environment variable named by the key as an integer.
-// If the variable is not present or cannot be parsed, it returns the defaultValue.
-func GetInt(key string, defaultValue int) int {
+func GetInt(key string) types.Result[int, error] {
 	value := os.Getenv(key)
 	if value == "" {
-		return defaultValue
+		return types.Err[int](errors.New("environment variable not found: " + key))
 	}
 
 	var result int
 	if _, err := fmt.Sscanf(value, "%d", &result); err != nil {
-		return defaultValue
+		return types.Err[int](err)
 	}
-	return result
+	return types.Ok[int, error](result)
 }
 
 // GetBool returns the value of the environment variable named by the key as a boolean.
 // It accepts "true", "1", "yes" as true values (case-insensitive).
-// If the variable is not present, it returns the defaultValue.
-func GetBool(key string, defaultValue bool) bool {
+func GetBool(key string) types.Result[bool, error] {
 	value := os.Getenv(key)
 	if value == "" {
-		return defaultValue
+		return types.Err[bool](errors.New("environment variable not found: " + key))
 	}
 
 	switch strings.ToLower(value) {
 	case "true", "1", "yes":
-		return true
+		return types.Ok[bool, error](true)
 	case "false", "0", "no":
-		return false
+		return types.Ok[bool, error](false)
 	default:
-		return defaultValue
+		return types.Err[bool](errors.New("invalid boolean value: " + value))
 	}
 }

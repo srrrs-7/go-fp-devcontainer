@@ -2,32 +2,51 @@ package task_repository
 
 import (
 	"api/src/domain/model"
+	"context"
+	"utils/db/db"
 	"utils/types"
+
+	"github.com/google/uuid"
 )
 
-func FindTaskByID(id model.TaskID) types.Result[model.Task, model.AppError] {
-	return types.Ok[model.Task, model.AppError](model.Task{
-		ID:          id,
-		Title:       "Sample Task",
-		Description: "This is a sample task description.",
-		Completed:   false,
-	})
+func FindTaskByID(q db.Querier, ctx context.Context, id model.TaskID) types.Result[model.Task, model.AppError] {
+	return types.Map(
+		types.MapErr(
+			types.FromPair(q.GetTask(ctx, uuid.UUID(id))),
+			func(e error) model.AppError {
+				return model.NewDatabaseError(e, "TaskRepository")
+			},
+		),
+		func(t db.Task) model.Task {
+			return model.Task{
+				ID:          model.TaskID(t.ID),
+				Title:       model.TaskTitle(t.Title),
+				Description: model.TaskDescription(t.Description.String),
+				Completed:   model.TaskCompleted(t.Status == "completed"),
+			}
+		},
+	)
 }
 
-func FindAllTasks() types.Result[[]model.Task, model.AppError] {
-	tasks := []model.Task{
-		{
-			ID:          model.NewTaskID("00000000-0000-0000-0000-000000000001"),
-			Title:       "Sample Task 1",
-			Description: "This is the first sample task.",
-			Completed:   false,
+func FindAllTasks(q db.Querier, ctx context.Context) types.Result[[]model.Task, model.AppError] {
+	return types.Map(
+		types.MapErr(
+			types.FromPair(q.ListTasks(ctx)),
+			func(e error) model.AppError {
+				return model.NewDatabaseError(e, "TaskRepository")
+			},
+		),
+		func(tasks []db.Task) []model.Task {
+			var result []model.Task
+			for _, task := range tasks {
+				result = append(result, model.Task{
+					ID:          model.TaskID(task.ID),
+					Title:       model.TaskTitle(task.Title),
+					Description: model.TaskDescription(task.Description.String),
+					Completed:   model.TaskCompleted(task.Status == "completed"),
+				})
+			}
+			return result
 		},
-		{
-			ID:          model.NewTaskID("00000000-0000-0000-0000-000000000002"),
-			Title:       "Sample Task 2",
-			Description: "This is the second sample task.",
-			Completed:   true,
-		},
-	}
-	return types.Ok[[]model.Task, model.AppError](tasks)
+	)
 }

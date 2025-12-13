@@ -18,7 +18,7 @@ words:
   - healthcheck
   - isready
   - ldflags
-  - mydb
+  - test
   - pkgs
   - sqlc
   - sslmode

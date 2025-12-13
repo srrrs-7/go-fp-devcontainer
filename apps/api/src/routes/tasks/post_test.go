@@ -1,12 +1,16 @@
 package tasks
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"utils/db/db"
+
+	"github.com/google/uuid"
 )
 
 func TestPostHandler(t *testing.T) {
@@ -72,7 +76,21 @@ func TestPostHandler(t *testing.T) {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 			w := httptest.NewRecorder()
-			PostHandler(w, req)
+
+			mockDB := &MockQuerier{
+				CreateTaskFunc: func(ctx context.Context, arg db.CreateTaskParams) (db.Task, error) {
+					id := uuid.New()
+					return db.Task{
+						ID:          id,
+						Title:       arg.Title,
+						Description: arg.Description,
+						Status:      "pending",
+					}, nil
+				},
+			}
+
+			handler := NewPostHandler(mockDB)
+			handler.ServeHTTP(w, req)
 
 			resp := w.Result()
 			if resp.StatusCode != tt.expected.statusCode {

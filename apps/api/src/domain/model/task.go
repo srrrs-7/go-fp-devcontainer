@@ -58,4 +58,5 @@ type Task struct {
 type TaskCmd struct {
 	Title       TaskTitle
 	Description TaskDescription
+	Completed   TaskCompleted
 }

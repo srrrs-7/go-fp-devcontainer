@@ -2,10 +2,7 @@
 set -euo pipefail
 
 echo "=== Database Migration ==="
-echo "Host: ${DB_HOST}"
-echo "Port: ${DB_PORT}"
-echo "Database: ${DB_DBNAME}"
-echo "User: ${DB_USERNAME}"
+echo "DB_URI: ${DB_URI}"
 
 # Wait for database to be ready
 echo "Waiting for database to be ready..."

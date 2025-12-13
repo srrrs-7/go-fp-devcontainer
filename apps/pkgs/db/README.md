@@ -32,7 +32,7 @@ db/
 
 - `DB_HOST`: データベースホスト（例: `db`）
 - `DB_PORT`: データベースポート（例: `5432`）
-- `DB_DBNAME`: データベース名（例: `mydb`）
+- `DB_DBNAME`: データベース名（例: `test`）
 - `DB_USERNAME`: データベースユーザー（例: `postgres`）
 - `DB_PASSWORD`: データベースパスワード
 
@@ -42,29 +42,29 @@ db/
 
 ```bash
 # 接続文字列を使用
-psql "postgresql://postgres:postgres@db:5432/mydb"
+psql "postgresql://postgres:postgres@db:5432/test"
 
 # または個別オプションで指定
-psql -h db -p 5432 -U postgres -d mydb
+psql -h db -p 5432 -U postgres -d test
 ```
 
 ### ホストマシンから接続
 
 ```bash
 # 接続文字列を使用
-psql "postgresql://postgres:postgres@localhost:5432/mydb"
+psql "postgresql://postgres:postgres@localhost:5432/test"
 
 # または個別オプションで指定
-psql -h localhost -p 5432 -U postgres -d mydb
+psql -h localhost -p 5432 -U postgres -d test
 
 # パスワード入力なし（環境変数使用）
-PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d mydb
+PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d test
 ```
 
 ### JDBC 接続文字列
 
 ```
-jdbc:postgresql://localhost:5432/mydb
+jdbc:postgresql://localhost:5432/test
 ユーザー名: postgres
 パスワード: postgres
 ```
@@ -210,7 +210,7 @@ make atlas-apply ATLAS_ENV=ci
 
 ## 開発データベースについて
 
-Atlas は差分生成や検証のために開発用データベース (`mydb_dev`) を使用します。
+Atlas は差分生成や検証のために開発用データベース (`test_dev`) を使用します。
 このデータベースは Atlas が自由に操作できる必要があります。
 
 ## ベストプラクティス

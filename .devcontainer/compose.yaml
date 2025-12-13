@@ -19,7 +19,7 @@ services:
       - pg-data:/var/lib/postgresql
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d mydb"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d test"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -28,8 +28,6 @@ services:
     image: redis:alpine
     volumes:
       - cache-data:/data
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -39,8 +37,6 @@ services:
   # elasticmq
   queue:
     image: softwaremill/elasticmq
-    ports:
-      - "9324:9324"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9324/health"]
       interval: 5s
