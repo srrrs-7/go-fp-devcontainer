@@ -6,6 +6,9 @@ echo "🚀 Starting Dev Container setup..."
 echo "👤 Current user:"
 whoami
 
+# DB migrations
+make atlas-apply
+
 # init and execute personal setup script
 if [ ! -f ".devcontainer/setup.personal.sh" ]; then
   cat << 'EOF' > .devcontainer/setup.personal.sh
