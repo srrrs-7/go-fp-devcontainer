@@ -18,7 +18,7 @@ dev-cp:
 API_MOD = ./apps/api
 PKGS_MOD = ./apps/pkgs
 WEB_MOD = ./apps/web
-MODS = $(API_MOD) $(PKGS_MOD)
+MODS = $(API_MOD) $(PKGS_MOD) $(WEB_MOD)
 
 cp:
 	cp compose.override.yaml.example compose.override.yaml
@@ -54,11 +54,27 @@ env:
 	done
 
 ########
+# templ #
+########
+.PHONY: templ-gen templ-watch templ-fmt
+
+templ-gen:
+	cd ${WEB_MOD}/src && templ generate
+
+templ-watch:
+	cd ${WEB_MOD}/src && templ generate --watch
+
+templ-fmt:
+	cd ${WEB_MOD}/src && templ fmt .
+
+########
 # wasm #
 ########
+# NOTE: WASM targets are deprecated. Use templ for web frontend.
 .PHONY: wasm wasm-clean
 
 wasm:
+	@echo "DEPRECATED: Use 'make templ-gen' instead"
 	@echo "Building WebAssembly..."
 	cd ${WEB_MOD} && GOOS=js GOARCH=wasm go build -o main.wasm .
 	@echo "Done: ${WEB_MOD}/main.wasm"
