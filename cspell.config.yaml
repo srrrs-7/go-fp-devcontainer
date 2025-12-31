@@ -18,10 +18,11 @@ words:
   - healthcheck
   - isready
   - ldflags
-  - test
   - pkgs
   - sqlc
   - sslmode
+  - synctest
+  - test
   - tfstate
   - tfvars
   - tzdata
