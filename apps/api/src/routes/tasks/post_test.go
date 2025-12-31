@@ -14,107 +14,128 @@ import (
 )
 
 func TestPostHandler(t *testing.T) {
-	type args struct {
-		formData map[string]string
-	}
-	type expected struct {
-		statusCode int
-		hasError   bool
-	}
-
-	tests := []struct {
-		testName string
-		args     args
-		expected expected
-	}{
-		{
-			testName: "valid request",
-			args: args{
+	t.Run("201 Created", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			formData map[string]string
+		}{
+			{
+				name: "valid request with title and description",
 				formData: map[string]string{
 					"title":       "New Task",
 					"description": "Task Description",
 				},
 			},
-			expected: expected{
-				statusCode: http.StatusCreated,
-				hasError:   false,
+			{
+				name: "valid request with title only",
+				formData: map[string]string{
+					"title": "New Task",
+				},
 			},
-		},
-		{
-			testName: "title too short",
-			args: args{
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				formData := url.Values{}
+				for k, v := range tt.formData {
+					formData.Set(k, v)
+				}
+				req := httptest.NewRequest(http.MethodPost, "/tasks", strings.NewReader(formData.Encode()))
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+				w := httptest.NewRecorder()
+				mockDB := &MockQuerier{
+					CreateTaskFunc: func(ctx context.Context, arg db.CreateTaskParams) (db.Task, error) {
+						return db.Task{
+							ID:          uuid.New(),
+							Title:       arg.Title,
+							Description: arg.Description,
+							Status:      "pending",
+						}, nil
+					},
+				}
+
+				handler := NewPostHandler(mockDB)
+				handler.ServeHTTP(w, req)
+
+				resp := w.Result()
+				if resp.StatusCode != http.StatusCreated {
+					t.Errorf("expected status %d, got %d", http.StatusCreated, resp.StatusCode)
+				}
+
+				var result map[string]any
+				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+					t.Fatalf("failed to decode response: %v", err)
+				}
+				if _, ok := result["id"]; !ok {
+					t.Error("expected 'id' field in response")
+				}
+			})
+		}
+	})
+
+	t.Run("400 Bad Request", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			formData map[string]string
+		}{
+			{
+				name: "title too short",
 				formData: map[string]string{
 					"title": "ab",
 				},
 			},
-			expected: expected{
-				statusCode: http.StatusBadRequest,
-				hasError:   true,
-			},
-		},
-		{
-			testName: "missing title",
-			args: args{
+			{
+				name: "missing title",
 				formData: map[string]string{
 					"description": "Only description",
 				},
 			},
-			expected: expected{
-				statusCode: http.StatusBadRequest,
-				hasError:   true,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
-			formData := url.Values{}
-			for k, v := range tt.args.formData {
-				formData.Set(k, v)
-			}
-			req := httptest.NewRequest(http.MethodPost, "/tasks", strings.NewReader(formData.Encode()))
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-			w := httptest.NewRecorder()
-
-			mockDB := &MockQuerier{
-				CreateTaskFunc: func(ctx context.Context, arg db.CreateTaskParams) (db.Task, error) {
-					id := uuid.New()
-					return db.Task{
-						ID:          id,
-						Title:       arg.Title,
-						Description: arg.Description,
-						Status:      "pending",
-					}, nil
+			{
+				name: "empty title",
+				formData: map[string]string{
+					"title": "",
 				},
-			}
+			},
+		}
 
-			handler := NewPostHandler(mockDB)
-			handler.ServeHTTP(w, req)
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				formData := url.Values{}
+				for k, v := range tt.formData {
+					formData.Set(k, v)
+				}
+				req := httptest.NewRequest(http.MethodPost, "/tasks", strings.NewReader(formData.Encode()))
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-			resp := w.Result()
-			if resp.StatusCode != tt.expected.statusCode {
-				t.Errorf("expected status %v, got %v", tt.expected.statusCode, resp.StatusCode)
-			}
+				w := httptest.NewRecorder()
+				mockDB := &MockQuerier{
+					CreateTaskFunc: func(ctx context.Context, arg db.CreateTaskParams) (db.Task, error) {
+						return db.Task{
+							ID:          uuid.New(),
+							Title:       arg.Title,
+							Description: arg.Description,
+							Status:      "pending",
+						}, nil
+					},
+				}
 
-			if resp.Header.Get("Content-Type") != "application/json" {
-				t.Errorf("expected Content-Type application/json, got %v", resp.Header.Get("Content-Type"))
-			}
+				handler := NewPostHandler(mockDB)
+				handler.ServeHTTP(w, req)
 
-			var result map[string]interface{}
-			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-				t.Fatalf("failed to decode response body: %v", err)
-			}
+				resp := w.Result()
+				if resp.StatusCode != http.StatusBadRequest {
+					t.Errorf("expected status %d, got %d", http.StatusBadRequest, resp.StatusCode)
+				}
 
-			if tt.expected.hasError {
+				var result map[string]any
+				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+					t.Fatalf("failed to decode response: %v", err)
+				}
 				if _, ok := result["type"]; !ok {
-					t.Errorf("expected error response to have 'type' field")
+					t.Error("expected 'type' field in error response")
 				}
-			} else {
-				if _, ok := result["id"]; !ok {
-					t.Errorf("expected success response to have 'id' field")
-				}
-			}
-		})
-	}
+			})
+		}
+	})
 }

@@ -16,12 +16,14 @@ words:
   - DBTX
   - GOARCH
   - healthcheck
+  - HTMX
   - isready
   - ldflags
   - pkgs
   - sqlc
   - sslmode
   - synctest
+  - templ
   - test
   - tfstate
   - tfvars

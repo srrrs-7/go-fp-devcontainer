@@ -4,11 +4,12 @@ services:
       context: .
       dockerfile: apps/web/.images/Dockerfile
     ports:
-      - 3000:80
+      - 3000:3000
+    environment:
+      - PORT=3000
+      - API_BASE_URL=http://api:8080
     depends_on:
-      - db
-      - cache
-      - queue
+      - api
 
   api:
     build:

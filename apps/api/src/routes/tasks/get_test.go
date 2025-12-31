@@ -13,103 +13,119 @@ import (
 )
 
 func TestGetHandler(t *testing.T) {
-	type args struct {
-		queryParams map[string]string
-	}
-	type expected struct {
-		statusCode int
-		hasError   bool
-	}
-
-	tests := []struct {
-		testName string
-		args     args
-		expected expected
-	}{
-		{
-			testName: "valid uuid",
-			args: args{
+	t.Run("200 OK", func(t *testing.T) {
+		tests := []struct {
+			name        string
+			queryParams map[string]string
+		}{
+			{
+				name: "valid uuid",
 				queryParams: map[string]string{
 					"id": "550e8400-e29b-41d4-a716-446655440000",
 				},
 			},
-			expected: expected{
-				statusCode: http.StatusOK,
-				hasError:   false,
-			},
-		},
-		{
-			testName: "invalid uuid",
-			args: args{
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
+				q := req.URL.Query()
+				for k, v := range tt.queryParams {
+					q.Add(k, v)
+				}
+				req.URL.RawQuery = q.Encode()
+
+				w := httptest.NewRecorder()
+				mockDB := &MockQuerier{
+					GetTaskFunc: func(ctx context.Context, id uuid.UUID) (db.Task, error) {
+						return db.Task{
+							ID:          id,
+							Title:       "Sample Task",
+							Description: sql.NullString{String: "Description", Valid: true},
+							Status:      "pending",
+						}, nil
+					},
+				}
+
+				handler := NewGetHandler(mockDB)
+				handler.ServeHTTP(w, req)
+
+				resp := w.Result()
+				if resp.StatusCode != http.StatusOK {
+					t.Errorf("expected status %d, got %d", http.StatusOK, resp.StatusCode)
+				}
+
+				var result map[string]any
+				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+					t.Fatalf("failed to decode response: %v", err)
+				}
+				if _, ok := result["id"]; !ok {
+					t.Error("expected 'id' field in response")
+				}
+			})
+		}
+	})
+
+	t.Run("400 Bad Request", func(t *testing.T) {
+		tests := []struct {
+			name        string
+			queryParams map[string]string
+		}{
+			{
+				name: "invalid uuid",
 				queryParams: map[string]string{
 					"id": "invalid-uuid",
 				},
 			},
-			expected: expected{
-				statusCode: http.StatusBadRequest,
-				hasError:   true,
-			},
-		},
-		{
-			testName: "missing id",
-			args: args{
+			{
+				name:        "missing id",
 				queryParams: map[string]string{},
 			},
-			expected: expected{
-				statusCode: http.StatusBadRequest,
-				hasError:   true,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
-			q := req.URL.Query()
-			for k, v := range tt.args.queryParams {
-				q.Add(k, v)
-			}
-			req.URL.RawQuery = q.Encode()
-
-			w := httptest.NewRecorder()
-
-			mockDB := &MockQuerier{
-				GetTaskFunc: func(ctx context.Context, id uuid.UUID) (db.Task, error) {
-					return db.Task{
-						ID:          id,
-						Title:       "Sample Task",
-						Description: sql.NullString{String: "Description", Valid: true},
-						Status:      "pending",
-					}, nil
+			{
+				name: "empty id",
+				queryParams: map[string]string{
+					"id": "",
 				},
-			}
+			},
+		}
 
-			handler := NewGetHandler(mockDB)
-			handler.ServeHTTP(w, req)
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
+				q := req.URL.Query()
+				for k, v := range tt.queryParams {
+					q.Add(k, v)
+				}
+				req.URL.RawQuery = q.Encode()
 
-			resp := w.Result()
-			if resp.StatusCode != tt.expected.statusCode {
-				t.Errorf("expected status %v, got %v", tt.expected.statusCode, resp.StatusCode)
-			}
+				w := httptest.NewRecorder()
+				mockDB := &MockQuerier{
+					GetTaskFunc: func(ctx context.Context, id uuid.UUID) (db.Task, error) {
+						return db.Task{
+							ID:          id,
+							Title:       "Sample Task",
+							Description: sql.NullString{String: "Description", Valid: true},
+							Status:      "pending",
+						}, nil
+					},
+				}
 
-			if resp.Header.Get("Content-Type") != "application/json" {
-				t.Errorf("expected Content-Type application/json, got %v", resp.Header.Get("Content-Type"))
-			}
+				handler := NewGetHandler(mockDB)
+				handler.ServeHTTP(w, req)
 
-			var result map[string]interface{}
-			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-				t.Fatalf("failed to decode response body: %v", err)
-			}
+				resp := w.Result()
+				if resp.StatusCode != http.StatusBadRequest {
+					t.Errorf("expected status %d, got %d", http.StatusBadRequest, resp.StatusCode)
+				}
 
-			if tt.expected.hasError {
+				var result map[string]any
+				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+					t.Fatalf("failed to decode response: %v", err)
+				}
 				if _, ok := result["type"]; !ok {
-					t.Errorf("expected error response to have 'type' field")
+					t.Error("expected 'type' field in error response")
 				}
-			} else {
-				if _, ok := result["id"]; !ok {
-					t.Errorf("expected success response to have 'id' field")
-				}
-			}
-		})
-	}
+			})
+		}
+	})
 }

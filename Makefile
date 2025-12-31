@@ -2,23 +2,51 @@ PHONY: help
 help:
 	cat ./Makefile
 
+#############
+# Variables #
+#############
+API_MOD = ./apps/api
+PKGS_MOD = ./apps/pkgs
+WEB_MOD = ./apps/web
+DB_MOD = ./apps/pkgs/db
+IAC_DIR = ./apps/iac
+MODS = $(API_MOD) $(PKGS_MOD) $(WEB_MOD)
+ATLAS_ENV ?= local
+ATLAS_DIR = $(DB_MOD)
+
 #################
 # Dev Container #
 #################
-.PHONY: dev-cp
+.PHONY: dev-cp run-api run-web run-migrate run-all
 
 dev-cp:
 	cp .devcontainer/compose.override.yaml.example .devcontainer/compose.override.yaml
+
+# Run API server (port 8080)
+run-api:
+	cd ${API_MOD}/src && go run ./cmd
+
+# Run Web server (port 3000)
+# Requires: make templ-gen (run once after templ file changes)
+run-web:
+	cd ${WEB_MOD}/src && go run ./cmd
+
+# Run database migrations (Atlas)
+run-migrate:
+	@echo "Running database migrations..."
+	cd ${DB_MOD} && atlas migrate apply --env local
+
+# Run all services (migrate -> api -> web in background)
+run-all: run-migrate
+	@echo "Starting API server..."
+	cd ${API_MOD}/src && go run ./cmd &
+	@echo "Starting Web server..."
+	cd ${WEB_MOD}/src && go run ./cmd
 
 #############
 # Container #
 #############
 .PHONY: cp fmt vet test tidy graph env
-
-API_MOD = ./apps/api
-PKGS_MOD = ./apps/pkgs
-WEB_MOD = ./apps/web
-MODS = $(API_MOD) $(PKGS_MOD)
 
 cp:
 	cp compose.override.yaml.example compose.override.yaml
@@ -53,12 +81,28 @@ env:
 		(cd $$mod && go env); \
 	done
 
+#########
+# templ #
+#########
+.PHONY: templ-gen templ-watch templ-fmt
+
+templ-gen:
+	cd ${WEB_MOD}/src && templ generate
+
+templ-watch:
+	cd ${WEB_MOD}/src && templ generate --watch
+
+templ-fmt:
+	cd ${WEB_MOD}/src && templ fmt .
+
 ########
 # wasm #
 ########
+# NOTE: WASM targets are deprecated. Use templ for web frontend.
 .PHONY: wasm wasm-clean
 
 wasm:
+	@echo "DEPRECATED: Use 'make templ-gen' instead"
 	@echo "Building WebAssembly..."
 	cd ${WEB_MOD} && GOOS=js GOARCH=wasm go build -o main.wasm .
 	@echo "Done: ${WEB_MOD}/main.wasm"
@@ -69,8 +113,6 @@ wasm-clean:
 ########
 # sqlc #
 ########
-DB_MOD = ./apps/pkgs/db
-
 .PHONY: sqlc-gen sqlc-gen sqlc-compile sqlc-verify sqlc-help
 
 sqlc-gen:
@@ -85,9 +127,6 @@ sqlc-verify:
 ###################
 # atlas migration #
 ###################
-ATLAS_ENV ?= local
-ATLAS_DIR = ${DB_MOD}
-
 .PHONY: atlas-new atlas-diff atlas-apply atlas-status atlas-hash atlas-lint atlas-inspect atlas-clean atlas-validate
 
 # Create a new migration file with a given name
@@ -162,8 +201,6 @@ atlas-clean:
 #############
 # Terraform #
 #############
-IAC_DIR = ./apps/iac
-
 .PHONY: tf-fmt
 
 tf-fmt:

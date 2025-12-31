@@ -1,44 +1,63 @@
-FROM golang:1.25 AS builder
+# Web Server Image (templ SSR)
+# Go application serving HTML on port 3000
+#
+# Build context should be repository root:
+#   docker build -f apps/web/.images/Dockerfile -t web .
 
+# =============================================================================
+# Builder Stage
+# =============================================================================
+FROM golang:1.25-alpine AS builder
+
+# Install certificates and git for dependencies
+RUN apk add --no-cache ca-certificates git
+
+# Install templ CLI
+RUN go install github.com/a-h/templ/cmd/templ@latest
+
+# Copy source code
 WORKDIR /build
+COPY apps/go.work apps/go.work.sum ./
+COPY apps/web ./web
+COPY apps/pkgs ./pkgs
 
-# Copy go.mod
-COPY go.mod ./
+# Generate templ files
+WORKDIR /build/web/src
+RUN templ generate
 
-# Copy source files
-COPY main.go ./
+# Build binary
+WORKDIR /build/web/src
+ENV CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
 
-# Build WebAssembly binary
-RUN GOOS=js GOARCH=wasm go build -o main.wasm .
+RUN go build -ldflags="-s -w" -trimpath -o /web ./cmd
 
-# Copy wasm_exec.js from Go installation
-RUN cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" ./
+# =============================================================================
+# Runner Stage
+# =============================================================================
+FROM alpine:3.21
 
-# Production stage - use nginx to serve static files
-FROM nginx:alpine
+# Install runtime dependencies
+RUN apk add --no-cache ca-certificates tzdata
 
-WORKDIR /usr/share/nginx/html
+# Create non-root user for security
+RUN addgroup -g 1000 web && \
+    adduser -u 1000 -G web -s /bin/sh -D web
 
-# Copy static files
-COPY static/ ./
+# Copy built binary
+COPY --from=builder /web /usr/local/bin/web
 
-# Copy WASM binary and JS glue from builder
-COPY --from=builder /build/main.wasm ./
-COPY --from=builder /build/wasm_exec.js ./
+# Use non-root user
+USER web
+WORKDIR /home/web
 
-# Configure nginx for SPA
-RUN echo 'server { \
-    listen 3000; \
-    root /usr/share/nginx/html; \
-    index index.html; \
-    location / { \
-        try_files $uri $uri/ /index.html; \
-    } \
-    location ~* \.(wasm)$ { \
-        add_header Content-Type application/wasm; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
-
+# Expose web port
 EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Run application
+CMD ["/usr/local/bin/web"]

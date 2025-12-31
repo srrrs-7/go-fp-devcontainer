@@ -9,6 +9,9 @@ whoami
 # DB migrations
 make atlas-apply
 
+# go templ installation (HTML templating library)
+go install github.com/a-h/templ/cmd/templ@latest
+
 # init and execute personal setup script
 if [ ! -f ".devcontainer/setup.personal.sh" ]; then
   cat << 'EOF' > .devcontainer/setup.personal.sh
