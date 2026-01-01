@@ -9,13 +9,21 @@ import (
 	"strings"
 	"testing"
 	"utils/db/db"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestPutHandler(t *testing.T) {
 	t.Run("200 OK", func(t *testing.T) {
+		type expected struct {
+			statusCode int
+			hasID      bool
+		}
+
 		tests := []struct {
 			name     string
 			formData map[string]string
+			expected expected
 		}{
 			{
 				name: "valid request with all fields",
@@ -25,6 +33,10 @@ func TestPutHandler(t *testing.T) {
 					"description": "Updated Description",
 					"status":      "completed",
 				},
+				expected: expected{
+					statusCode: http.StatusOK,
+					hasID:      true,
+				},
 			},
 			{
 				name: "valid request without description",
@@ -33,6 +45,10 @@ func TestPutHandler(t *testing.T) {
 					"title":  "Updated Task",
 					"status": "pending",
 				},
+				expected: expected{
+					statusCode: http.StatusOK,
+					hasID:      true,
+				},
 			},
 		}
 
@@ -61,25 +77,33 @@ func TestPutHandler(t *testing.T) {
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()
-				if resp.StatusCode != http.StatusOK {
-					t.Errorf("expected status %d, got %d", http.StatusOK, resp.StatusCode)
+				if diff := cmp.Diff(tt.expected.statusCode, resp.StatusCode); diff != "" {
+					t.Errorf("status code mismatch (-want +got):\n%s", diff)
 				}
 
 				var result map[string]any
 				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 					t.Fatalf("failed to decode response: %v", err)
 				}
-				if _, ok := result["id"]; !ok {
-					t.Error("expected 'id' field in response")
+
+				_, hasID := result["id"]
+				if diff := cmp.Diff(tt.expected.hasID, hasID); diff != "" {
+					t.Errorf("'id' field presence mismatch (-want +got):\n%s", diff)
 				}
 			})
 		}
 	})
 
 	t.Run("400 Bad Request", func(t *testing.T) {
+		type expected struct {
+			statusCode int
+			hasType    bool
+		}
+
 		tests := []struct {
 			name     string
 			formData map[string]string
+			expected expected
 		}{
 			{
 				name: "invalid uuid",
@@ -87,11 +111,19 @@ func TestPutHandler(t *testing.T) {
 					"id":    "invalid-uuid",
 					"title": "Updated Task",
 				},
+				expected: expected{
+					statusCode: http.StatusBadRequest,
+					hasType:    true,
+				},
 			},
 			{
 				name: "missing id",
 				formData: map[string]string{
 					"title": "Updated Task",
+				},
+				expected: expected{
+					statusCode: http.StatusBadRequest,
+					hasType:    true,
 				},
 			},
 			{
@@ -100,11 +132,19 @@ func TestPutHandler(t *testing.T) {
 					"id":    "00000000-0000-0000-0000-000000000001",
 					"title": "ab",
 				},
+				expected: expected{
+					statusCode: http.StatusBadRequest,
+					hasType:    true,
+				},
 			},
 			{
 				name: "missing title",
 				formData: map[string]string{
 					"id": "00000000-0000-0000-0000-000000000001",
+				},
+				expected: expected{
+					statusCode: http.StatusBadRequest,
+					hasType:    true,
 				},
 			},
 		}
@@ -134,16 +174,18 @@ func TestPutHandler(t *testing.T) {
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()
-				if resp.StatusCode != http.StatusBadRequest {
-					t.Errorf("expected status %d, got %d", http.StatusBadRequest, resp.StatusCode)
+				if diff := cmp.Diff(tt.expected.statusCode, resp.StatusCode); diff != "" {
+					t.Errorf("status code mismatch (-want +got):\n%s", diff)
 				}
 
 				var result map[string]any
 				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 					t.Fatalf("failed to decode response: %v", err)
 				}
-				if _, ok := result["type"]; !ok {
-					t.Error("expected 'type' field in error response")
+
+				_, hasType := result["type"]
+				if diff := cmp.Diff(tt.expected.hasType, hasType); diff != "" {
+					t.Errorf("'type' field presence mismatch (-want +got):\n%s", diff)
 				}
 			})
 		}

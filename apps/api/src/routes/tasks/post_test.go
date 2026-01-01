@@ -10,14 +10,21 @@ import (
 	"testing"
 	"utils/db/db"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 )
 
 func TestPostHandler(t *testing.T) {
 	t.Run("201 Created", func(t *testing.T) {
+		type expected struct {
+			statusCode int
+			hasID      bool
+		}
+
 		tests := []struct {
 			name     string
 			formData map[string]string
+			expected expected
 		}{
 			{
 				name: "valid request with title and description",
@@ -25,11 +32,19 @@ func TestPostHandler(t *testing.T) {
 					"title":       "New Task",
 					"description": "Task Description",
 				},
+				expected: expected{
+					statusCode: http.StatusCreated,
+					hasID:      true,
+				},
 			},
 			{
 				name: "valid request with title only",
 				formData: map[string]string{
 					"title": "New Task",
+				},
+				expected: expected{
+					statusCode: http.StatusCreated,
+					hasID:      true,
 				},
 			},
 		}
@@ -59,30 +74,42 @@ func TestPostHandler(t *testing.T) {
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()
-				if resp.StatusCode != http.StatusCreated {
-					t.Errorf("expected status %d, got %d", http.StatusCreated, resp.StatusCode)
+				if diff := cmp.Diff(tt.expected.statusCode, resp.StatusCode); diff != "" {
+					t.Errorf("status code mismatch (-want +got):\n%s", diff)
 				}
 
 				var result map[string]any
 				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 					t.Fatalf("failed to decode response: %v", err)
 				}
-				if _, ok := result["id"]; !ok {
-					t.Error("expected 'id' field in response")
+
+				_, hasID := result["id"]
+				if diff := cmp.Diff(tt.expected.hasID, hasID); diff != "" {
+					t.Errorf("'id' field presence mismatch (-want +got):\n%s", diff)
 				}
 			})
 		}
 	})
 
 	t.Run("400 Bad Request", func(t *testing.T) {
+		type expected struct {
+			statusCode int
+			hasType    bool
+		}
+
 		tests := []struct {
 			name     string
 			formData map[string]string
+			expected expected
 		}{
 			{
 				name: "title too short",
 				formData: map[string]string{
 					"title": "ab",
+				},
+				expected: expected{
+					statusCode: http.StatusBadRequest,
+					hasType:    true,
 				},
 			},
 			{
@@ -90,11 +117,19 @@ func TestPostHandler(t *testing.T) {
 				formData: map[string]string{
 					"description": "Only description",
 				},
+				expected: expected{
+					statusCode: http.StatusBadRequest,
+					hasType:    true,
+				},
 			},
 			{
 				name: "empty title",
 				formData: map[string]string{
 					"title": "",
+				},
+				expected: expected{
+					statusCode: http.StatusBadRequest,
+					hasType:    true,
 				},
 			},
 		}
@@ -124,16 +159,18 @@ func TestPostHandler(t *testing.T) {
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()
-				if resp.StatusCode != http.StatusBadRequest {
-					t.Errorf("expected status %d, got %d", http.StatusBadRequest, resp.StatusCode)
+				if diff := cmp.Diff(tt.expected.statusCode, resp.StatusCode); diff != "" {
+					t.Errorf("status code mismatch (-want +got):\n%s", diff)
 				}
 
 				var result map[string]any
 				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 					t.Fatalf("failed to decode response: %v", err)
 				}
-				if _, ok := result["type"]; !ok {
-					t.Error("expected 'type' field in error response")
+
+				_, hasType := result["type"]
+				if diff := cmp.Diff(tt.expected.hasType, hasType); diff != "" {
+					t.Errorf("'type' field presence mismatch (-want +got):\n%s", diff)
 				}
 			})
 		}

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type testResponse struct {
@@ -18,8 +20,9 @@ func TestOK(t *testing.T) {
 		body any
 	}
 	type expected struct {
-		statusCode int
-		body       map[string]string
+		statusCode  int
+		contentType string
+		body        map[string]string
 	}
 
 	tests := []struct {
@@ -33,8 +36,9 @@ func TestOK(t *testing.T) {
 				body: testResponse{Message: "success"},
 			},
 			expected: expected{
-				statusCode: http.StatusOK,
-				body:       map[string]string{"message": "success"},
+				statusCode:  http.StatusOK,
+				contentType: "application/json",
+				body:        map[string]string{"message": "success"},
 			},
 		},
 	}
@@ -45,12 +49,12 @@ func TestOK(t *testing.T) {
 			OK(w, tt.args.body)
 
 			resp := w.Result()
-			if resp.StatusCode != tt.expected.statusCode {
-				t.Errorf("expected status %v, got %v", tt.expected.statusCode, resp.Status)
+			if diff := cmp.Diff(tt.expected.statusCode, resp.StatusCode); diff != "" {
+				t.Errorf("status code mismatch (-want +got):\n%s", diff)
 			}
 
-			if resp.Header.Get("Content-Type") != "application/json" {
-				t.Errorf("expected Content-Type application/json, got %v", resp.Header.Get("Content-Type"))
+			if diff := cmp.Diff(tt.expected.contentType, resp.Header.Get("Content-Type")); diff != "" {
+				t.Errorf("Content-Type mismatch (-want +got):\n%s", diff)
 			}
 
 			var result map[string]string
@@ -58,10 +62,8 @@ func TestOK(t *testing.T) {
 				t.Fatalf("failed to decode response body: %v", err)
 			}
 
-			for k, v := range tt.expected.body {
-				if result[k] != v {
-					t.Errorf("expected %s %v, got %v", k, v, result[k])
-				}
+			if diff := cmp.Diff(tt.expected.body, result); diff != "" {
+				t.Errorf("body mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -72,8 +74,9 @@ func TestCreated(t *testing.T) {
 		body any
 	}
 	type expected struct {
-		statusCode int
-		body       map[string]string
+		statusCode  int
+		contentType string
+		body        map[string]string
 	}
 
 	tests := []struct {
@@ -87,8 +90,9 @@ func TestCreated(t *testing.T) {
 				body: testResponse{ID: "123"},
 			},
 			expected: expected{
-				statusCode: http.StatusCreated,
-				body:       map[string]string{"id": "123"},
+				statusCode:  http.StatusCreated,
+				contentType: "application/json",
+				body:        map[string]string{"id": "123"},
 			},
 		},
 	}
@@ -99,12 +103,12 @@ func TestCreated(t *testing.T) {
 			Created(w, tt.args.body)
 
 			resp := w.Result()
-			if resp.StatusCode != tt.expected.statusCode {
-				t.Errorf("expected status %v, got %v", tt.expected.statusCode, resp.Status)
+			if diff := cmp.Diff(tt.expected.statusCode, resp.StatusCode); diff != "" {
+				t.Errorf("status code mismatch (-want +got):\n%s", diff)
 			}
 
-			if resp.Header.Get("Content-Type") != "application/json" {
-				t.Errorf("expected Content-Type application/json, got %v", resp.Header.Get("Content-Type"))
+			if diff := cmp.Diff(tt.expected.contentType, resp.Header.Get("Content-Type")); diff != "" {
+				t.Errorf("Content-Type mismatch (-want +got):\n%s", diff)
 			}
 
 			var result map[string]string
@@ -112,10 +116,8 @@ func TestCreated(t *testing.T) {
 				t.Fatalf("failed to decode response body: %v", err)
 			}
 
-			for k, v := range tt.expected.body {
-				if result[k] != v {
-					t.Errorf("expected %s %v, got %v", k, v, result[k])
-				}
+			if diff := cmp.Diff(tt.expected.body, result); diff != "" {
+				t.Errorf("body mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -126,8 +128,9 @@ func TestHandleAppError(t *testing.T) {
 		err model.AppError
 	}
 	type expected struct {
-		statusCode int
-		body       map[string]string
+		statusCode  int
+		contentType string
+		body        map[string]string
 	}
 
 	tests := []struct {
@@ -141,10 +144,12 @@ func TestHandleAppError(t *testing.T) {
 				err: model.NewBadRequestError(nil, "TestDomain"),
 			},
 			expected: expected{
-				statusCode: http.StatusBadRequest,
+				statusCode:  http.StatusBadRequest,
+				contentType: "application/json",
 				body: map[string]string{
-					"type":   model.BadRequestErrorName,
-					"domain": "TestDomain",
+					"type":    model.BadRequestErrorName,
+					"domain":  "TestDomain",
+					"message": "BadRequestError [TestDomain]",
 				},
 			},
 		},
@@ -156,12 +161,12 @@ func TestHandleAppError(t *testing.T) {
 			HandleAppError(w, tt.args.err)
 
 			resp := w.Result()
-			if resp.StatusCode != tt.expected.statusCode {
-				t.Errorf("expected status %v, got %v", tt.expected.statusCode, resp.Status)
+			if diff := cmp.Diff(tt.expected.statusCode, resp.StatusCode); diff != "" {
+				t.Errorf("status code mismatch (-want +got):\n%s", diff)
 			}
 
-			if resp.Header.Get("Content-Type") != "application/json" {
-				t.Errorf("expected Content-Type application/json, got %v", resp.Header.Get("Content-Type"))
+			if diff := cmp.Diff(tt.expected.contentType, resp.Header.Get("Content-Type")); diff != "" {
+				t.Errorf("Content-Type mismatch (-want +got):\n%s", diff)
 			}
 
 			var result map[string]string
@@ -169,10 +174,8 @@ func TestHandleAppError(t *testing.T) {
 				t.Fatalf("failed to decode response body: %v", err)
 			}
 
-			for k, v := range tt.expected.body {
-				if result[k] != v {
-					t.Errorf("expected %s %v, got %v", k, v, result[k])
-				}
+			if diff := cmp.Diff(tt.expected.body, result); diff != "" {
+				t.Errorf("body mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

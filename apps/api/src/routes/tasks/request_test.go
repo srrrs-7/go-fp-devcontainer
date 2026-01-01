@@ -2,6 +2,8 @@ package tasks
 
 import (
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestGetRequestValidate(t *testing.T) {
@@ -51,11 +53,9 @@ func TestGetRequestValidate(t *testing.T) {
 			req := getRequest{ID: tt.args.id}
 			result := req.validate()
 
-			if tt.expected.hasError && result.IsOk() {
-				t.Errorf("expected validation error but got none")
-			}
-			if !tt.expected.hasError && !result.IsOk() {
-				t.Errorf("expected no validation error but got one")
+			gotHasError := !result.IsOk()
+			if diff := cmp.Diff(tt.expected.hasError, gotHasError); diff != "" {
+				t.Errorf("validation result mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -115,11 +115,9 @@ func TestPostRequestValidate(t *testing.T) {
 			}
 			result := req.validate()
 
-			if tt.expected.hasError && result.IsOk() {
-				t.Errorf("expected validation error but got none")
-			}
-			if !tt.expected.hasError && !result.IsOk() {
-				t.Errorf("expected no validation error but got one")
+			gotHasError := !result.IsOk()
+			if diff := cmp.Diff(tt.expected.hasError, gotHasError); diff != "" {
+				t.Errorf("validation result mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
