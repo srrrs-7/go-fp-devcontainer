@@ -43,4 +43,5 @@ jobs:
           push: always
           runCmd: |
             make vet
+            make atlas-apply
             make test

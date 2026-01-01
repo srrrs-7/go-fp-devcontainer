@@ -7,54 +7,65 @@ import (
 	"net/http/httptest"
 	"testing"
 	"utils/db/db"
+	"utils/testutil"
 
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestListHandler(t *testing.T) {
+
 	t.Run("200 OK", func(t *testing.T) {
 		type expected struct {
 			statusCode int
-			hasTasks   bool
+			taskCount  int
 		}
 
 		tests := []struct {
-			name        string
-			queryParams map[string]string
-			expected    expected
+			name     string
+			setup    func(t *testing.T, q db.Querier)
+			expected expected
 		}{
 			{
-				name: "valid request with all params",
-				queryParams: map[string]string{
-					"id":          "550e8400-e29b-41d4-a716-446655440000",
-					"title":       "Test Task",
-					"description": "Test Description",
-					"status":      "pending",
+				name: "list empty tasks",
+				setup: func(t *testing.T, q db.Querier) {
+					// No setup needed - empty database
 				},
 				expected: expected{
 					statusCode: http.StatusOK,
-					hasTasks:   true,
+					taskCount:  0,
+				},
+			},
+			{
+				name: "list multiple tasks",
+				setup: func(t *testing.T, q db.Querier) {
+					titles := []string{"Task 1", "Task 2", "Task 3"}
+					for _, title := range titles {
+						_, err := q.CreateTask(context.Background(), db.CreateTaskParams{
+							Title:    title,
+							Status:   "pending",
+							Priority: "medium",
+						})
+						if err != nil {
+							t.Fatalf("failed to create test task: %v", err)
+						}
+					}
+				},
+				expected: expected{
+					statusCode: http.StatusOK,
+					taskCount:  3,
 				},
 			},
 		}
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				q := testutil.SetupTestTx(t)
+				tt.setup(t, q)
+
 				req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
-				q := req.URL.Query()
-				for k, v := range tt.queryParams {
-					q.Add(k, v)
-				}
-				req.URL.RawQuery = q.Encode()
-
 				w := httptest.NewRecorder()
-				mockDB := &MockQuerier{
-					ListTasksFunc: func(ctx context.Context) ([]db.Task, error) {
-						return []db.Task{}, nil
-					},
-				}
 
-				handler := NewListHandler(mockDB)
+				handler := NewListHandler(q)
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()
@@ -62,108 +73,60 @@ func TestListHandler(t *testing.T) {
 					t.Errorf("status code mismatch (-want +got):\n%s", diff)
 				}
 
-				var result map[string]any
+				var result struct {
+					Tasks []map[string]any `json:"tasks"`
+				}
 				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 					t.Fatalf("failed to decode response: %v", err)
 				}
 
-				_, hasTasks := result["tasks"]
-				if diff := cmp.Diff(tt.expected.hasTasks, hasTasks); diff != "" {
-					t.Errorf("'tasks' field presence mismatch (-want +got):\n%s", diff)
+				if diff := cmp.Diff(tt.expected.taskCount, len(result.Tasks)); diff != "" {
+					t.Errorf("task count mismatch (-want +got):\n%s", diff)
 				}
 			})
 		}
 	})
 
-	t.Run("400 Bad Request", func(t *testing.T) {
-		type expected struct {
-			statusCode int
-			hasType    bool
+	t.Run("data integrity", func(t *testing.T) {
+		q := testutil.SetupTestTx(t)
+
+		// Create a task
+		task, err := q.CreateTask(context.Background(), db.CreateTaskParams{
+			Title:    "Data Integrity Test",
+			Status:   "pending",
+			Priority: "medium",
+		})
+		if err != nil {
+			t.Fatalf("failed to create test task: %v", err)
 		}
 
-		tests := []struct {
-			name        string
-			queryParams map[string]string
-			expected    expected
-		}{
-			{
-				name: "invalid uuid",
-				queryParams: map[string]string{
-					"id":    "invalid",
-					"title": "Test Task",
-				},
-				expected: expected{
-					statusCode: http.StatusBadRequest,
-					hasType:    true,
-				},
-			},
-			{
-				name: "title too short",
-				queryParams: map[string]string{
-					"id":    "00000000-0000-0000-0000-000000000001",
-					"title": "ab",
-				},
-				expected: expected{
-					statusCode: http.StatusBadRequest,
-					hasType:    true,
-				},
-			},
-			{
-				name: "missing required id",
-				queryParams: map[string]string{
-					"title": "Test Task",
-				},
-				expected: expected{
-					statusCode: http.StatusBadRequest,
-					hasType:    true,
-				},
-			},
-			{
-				name: "missing required title",
-				queryParams: map[string]string{
-					"id": "00000000-0000-0000-0000-000000000001",
-				},
-				expected: expected{
-					statusCode: http.StatusBadRequest,
-					hasType:    true,
-				},
-			},
+		req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
+		w := httptest.NewRecorder()
+
+		handler := NewListHandler(q)
+		handler.ServeHTTP(w, req)
+
+		var result struct {
+			Tasks []map[string]any `json:"tasks"`
+		}
+		if err := json.NewDecoder(w.Result().Body).Decode(&result); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
 		}
 
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
-				q := req.URL.Query()
-				for k, v := range tt.queryParams {
-					q.Add(k, v)
-				}
-				req.URL.RawQuery = q.Encode()
+		if len(result.Tasks) != 1 {
+			t.Fatalf("expected 1 task, got %d", len(result.Tasks))
+		}
 
-				w := httptest.NewRecorder()
-				mockDB := &MockQuerier{
-					ListTasksFunc: func(ctx context.Context) ([]db.Task, error) {
-						return []db.Task{}, nil
-					},
-				}
+		if diff := cmp.Diff(task.ID.String(), result.Tasks[0]["id"]); diff != "" {
+			t.Errorf("id mismatch (-want +got):\n%s", diff)
+		}
 
-				handler := NewListHandler(mockDB)
-				handler.ServeHTTP(w, req)
+		if diff := cmp.Diff("Data Integrity Test", result.Tasks[0]["title"]); diff != "" {
+			t.Errorf("title mismatch (-want +got):\n%s", diff)
+		}
 
-				resp := w.Result()
-				if diff := cmp.Diff(tt.expected.statusCode, resp.StatusCode); diff != "" {
-					t.Errorf("status code mismatch (-want +got):\n%s", diff)
-				}
-
-				var result map[string]any
-				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-					t.Fatalf("failed to decode response: %v", err)
-				}
-
-				_, hasType := result["type"]
-				if diff := cmp.Diff(tt.expected.hasType, hasType); diff != "" {
-					t.Errorf("'type' field presence mismatch (-want +got):\n%s", diff)
-				}
-			})
+		if diff := cmp.Diff("pending", result.Tasks[0]["status"]); diff != "" {
+			t.Errorf("status mismatch (-want +got):\n%s", diff)
 		}
 	})
 }

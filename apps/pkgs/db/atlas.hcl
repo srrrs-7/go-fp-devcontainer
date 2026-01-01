@@ -4,7 +4,7 @@
 // Define environment variables from .devcontainer/compose.override.yaml
 variable "db_uri" {
   type    = string
-  default = getenv("DB_MIGRATE_URI")
+  default = getenv("DB_URI")
 }
 
 // Construct database URL from environment variables
@@ -15,10 +15,13 @@ locals {
 // Environment configuration
 env "local" {
   // Source schema files - Atlas will use these as the desired state
-  src = "file://schema"
+  src = "file://migrations"
 
   // Target database URL - where migrations will be applied
   url = local.url
+
+  // Dev database for calculating diffs
+  dev = local.url
 
   // Migration directory configuration
   migration {
@@ -29,8 +32,9 @@ env "local" {
 
 // Docker Compose environment (same as local, for compatibility)
 env "docker" {
-  src = "file://schema"
+  src = "file://migrations"
   url = local.url
+  dev = local.url
 
   migration {
     dir = "file://migrations"
@@ -39,8 +43,9 @@ env "docker" {
 
 // CI/CD environment
 env "ci" {
-  src = "file://schema"
+  src = "file://migrations"
   url = local.url
+  dev = local.url
 
   migration {
     dir = "file://migrations"

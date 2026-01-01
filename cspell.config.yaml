@@ -14,6 +14,8 @@ words:
   - coverprofile
   - DB_DBNAME
   - DBTX
+  - elasticmq
+  - getenv
   - GOARCH
   - healthcheck
   - HTMX

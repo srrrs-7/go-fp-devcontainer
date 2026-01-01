@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 PHONY: help
 help:
 	cat ./Makefile
@@ -51,7 +53,8 @@ run-all: run-migrate
 cp:
 	cp compose.override.yaml.example compose.override.yaml
 
-test:
+# Run tests (requires DB: docker compose up -d db)
+test: atlas-apply
 	for mod in $(MODS); do \
 		(cd $$mod && go test ./...); \
 	done
@@ -140,9 +143,10 @@ atlas-new:
 
 # Generate a migration by comparing schema files with the current database state
 # This will create a new migration file based on the diff
+# Usage: make atlas-diff NAME=add_users_table
 atlas-diff:
 	@echo "Generating migration from schema diff..."
-	cd ${ATLAS_DIR} && atlas migrate diff --env ${ATLAS_ENV}
+	cd ${ATLAS_DIR} && atlas migrate diff --env ${ATLAS_ENV} $(NAME)
 
 # Apply pending migrations to the database
 # Usage: make atlas-apply [ENV=docker]

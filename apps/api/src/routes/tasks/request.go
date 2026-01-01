@@ -10,7 +10,7 @@ import (
 )
 
 type getRequest struct {
-	ID string `json:"id" validate:"required,uuid4"`
+	ID string `json:"id" validate:"required,uuid"`
 }
 
 func newGetRequest(r *http.Request) getRequest {
@@ -30,10 +30,10 @@ func (r getRequest) validate() types.Result[getRequest, model.AppError] {
 }
 
 type listRequest struct {
-	ID          string `json:"id" validate:"required,uuid4"`
-	Title       string `json:"title" validate:"required,min=3,max=100"`
-	Description string `json:"description" validate:"max=500"`
-	Status      string `json:"status"`
+	ID          string `json:"id" validate:"omitempty,uuid"`
+	Title       string `json:"title" validate:"omitempty,min=3,max=100"`
+	Description string `json:"description" validate:"omitempty,max=500"`
+	Status      string `json:"status" validate:"omitempty"`
 }
 
 func newListRequest(r *http.Request) listRequest {
@@ -86,7 +86,7 @@ func (r postRequest) validate() types.Result[postRequest, model.AppError] {
 }
 
 type putRequest struct {
-	ID          string `json:"id" validate:"required,uuid4"`
+	ID          string `json:"id" validate:"required,uuid"`
 	Title       string `json:"title" validate:"required,min=3,max=100"`
 	Description string `json:"description" validate:"max=500"`
 	Status      string `json:"status"`

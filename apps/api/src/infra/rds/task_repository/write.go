@@ -4,6 +4,7 @@ import (
 	"api/src/domain/model"
 	"context"
 	"database/sql"
+	"errors"
 	"utils/db/db"
 	"utils/types"
 
@@ -53,6 +54,9 @@ func UpdateTask(q db.Querier, ctx context.Context, id model.TaskID, cmd model.Ta
 				Priority:    sql.NullString{String: "medium", Valid: true}, // Default
 			})),
 			func(e error) model.AppError {
+				if errors.Is(e, sql.ErrNoRows) {
+					return model.NewNotFoundError(e, "Task")
+				}
 				return model.NewDatabaseError(e, "TaskRepository")
 			},
 		),

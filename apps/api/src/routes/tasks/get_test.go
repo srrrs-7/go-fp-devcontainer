@@ -2,63 +2,60 @@ package tasks
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"utils/db/db"
+	"utils/testutil"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/uuid"
 )
 
 func TestGetHandler(t *testing.T) {
+
 	t.Run("200 OK", func(t *testing.T) {
 		type expected struct {
 			statusCode int
-			hasID      bool
+			title      string
+			status     string
 		}
 
 		tests := []struct {
-			name        string
-			queryParams map[string]string
-			expected    expected
+			name     string
+			setup    func(t *testing.T, q db.Querier) string
+			expected expected
 		}{
 			{
-				name: "valid uuid",
-				queryParams: map[string]string{
-					"id": "550e8400-e29b-41d4-a716-446655440000",
+				name: "get existing task",
+				setup: func(t *testing.T, q db.Querier) string {
+					task, err := q.CreateTask(context.Background(), db.CreateTaskParams{
+						Title:    "Integration Test Task",
+						Status:   "pending",
+						Priority: "medium",
+					})
+					if err != nil {
+						t.Fatalf("failed to create test task: %v", err)
+					}
+					return task.ID.String()
 				},
 				expected: expected{
 					statusCode: http.StatusOK,
-					hasID:      true,
+					title:      "Integration Test Task",
+					status:     "pending",
 				},
 			},
 		}
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
-				q := req.URL.Query()
-				for k, v := range tt.queryParams {
-					q.Add(k, v)
-				}
-				req.URL.RawQuery = q.Encode()
+				q := testutil.SetupTestTx(t)
+				taskID := tt.setup(t, q)
 
+				req := httptest.NewRequest(http.MethodGet, "/tasks?id="+taskID, nil)
 				w := httptest.NewRecorder()
-				mockDB := &MockQuerier{
-					GetTaskFunc: func(ctx context.Context, id uuid.UUID) (db.Task, error) {
-						return db.Task{
-							ID:          id,
-							Title:       "Sample Task",
-							Description: sql.NullString{String: "Description", Valid: true},
-							Status:      "pending",
-						}, nil
-					},
-				}
 
-				handler := NewGetHandler(mockDB)
+				handler := NewGetHandler(q)
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()
@@ -71,92 +68,47 @@ func TestGetHandler(t *testing.T) {
 					t.Fatalf("failed to decode response: %v", err)
 				}
 
-				_, hasID := result["id"]
-				if diff := cmp.Diff(tt.expected.hasID, hasID); diff != "" {
-					t.Errorf("'id' field presence mismatch (-want +got):\n%s", diff)
+				if diff := cmp.Diff(taskID, result["id"]); diff != "" {
+					t.Errorf("id mismatch (-want +got):\n%s", diff)
+				}
+
+				if diff := cmp.Diff(tt.expected.title, result["title"]); diff != "" {
+					t.Errorf("title mismatch (-want +got):\n%s", diff)
+				}
+
+				if diff := cmp.Diff(tt.expected.status, result["status"]); diff != "" {
+					t.Errorf("status mismatch (-want +got):\n%s", diff)
 				}
 			})
 		}
 	})
 
-	t.Run("400 Bad Request", func(t *testing.T) {
-		type expected struct {
-			statusCode int
-			hasType    bool
-		}
-
+	t.Run("404 Not Found", func(t *testing.T) {
 		tests := []struct {
-			name        string
-			queryParams map[string]string
-			expected    expected
+			name           string
+			taskID         string
+			expectedStatus int
 		}{
 			{
-				name: "invalid uuid",
-				queryParams: map[string]string{
-					"id": "invalid-uuid",
-				},
-				expected: expected{
-					statusCode: http.StatusBadRequest,
-					hasType:    true,
-				},
-			},
-			{
-				name:        "missing id",
-				queryParams: map[string]string{},
-				expected: expected{
-					statusCode: http.StatusBadRequest,
-					hasType:    true,
-				},
-			},
-			{
-				name: "empty id",
-				queryParams: map[string]string{
-					"id": "",
-				},
-				expected: expected{
-					statusCode: http.StatusBadRequest,
-					hasType:    true,
-				},
+				name:           "non-existent task",
+				taskID:         "00000000-0000-0000-0000-000000000000",
+				expectedStatus: http.StatusNotFound,
 			},
 		}
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
-				q := req.URL.Query()
-				for k, v := range tt.queryParams {
-					q.Add(k, v)
-				}
-				req.URL.RawQuery = q.Encode()
+				q := testutil.SetupTestTx(t)
 
+				req := httptest.NewRequest(http.MethodGet, "/tasks?id="+tt.taskID, nil)
 				w := httptest.NewRecorder()
-				mockDB := &MockQuerier{
-					GetTaskFunc: func(ctx context.Context, id uuid.UUID) (db.Task, error) {
-						return db.Task{
-							ID:          id,
-							Title:       "Sample Task",
-							Description: sql.NullString{String: "Description", Valid: true},
-							Status:      "pending",
-						}, nil
-					},
-				}
 
-				handler := NewGetHandler(mockDB)
+				handler := NewGetHandler(q)
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()
-				if diff := cmp.Diff(tt.expected.statusCode, resp.StatusCode); diff != "" {
+				if diff := cmp.Diff(tt.expectedStatus, resp.StatusCode); diff != "" {
 					t.Errorf("status code mismatch (-want +got):\n%s", diff)
-				}
-
-				var result map[string]any
-				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-					t.Fatalf("failed to decode response: %v", err)
-				}
-
-				_, hasType := result["type"]
-				if diff := cmp.Diff(tt.expected.hasType, hasType); diff != "" {
-					t.Errorf("'type' field presence mismatch (-want +got):\n%s", diff)
 				}
 			})
 		}

@@ -1,4 +1,9 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)"
+    ]
+  },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "serena",

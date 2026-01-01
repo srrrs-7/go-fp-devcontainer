@@ -1,5 +1,8 @@
+-- create public schema if not exists
+CREATE SCHEMA IF NOT EXISTS public;
+
 -- tasks table schema
-CREATE TABLE IF NOT EXISTS tasks (
+CREATE TABLE IF NOT EXISTS public.tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -13,9 +16,9 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 -- Indexes for common query patterns
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
-CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
-CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_tasks_user_status ON tasks(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON public.tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_priority ON public.tasks(priority);
+CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON public.tasks(user_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON public.tasks(due_date);
+CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON public.tasks(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tasks_user_status ON public.tasks(user_id, status);
