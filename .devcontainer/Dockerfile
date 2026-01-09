@@ -1,10 +1,16 @@
 FROM mcr.microsoft.com/devcontainers/base:2-trixie
 
-# Install dependencies required for Bun and uv
+# Install dependencies required for tools and firewall
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
     make \
+    iptables \
+    ipset \
+    dnsutils \
+    jq \
+    iproute2 \
+    aggregate \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Bun as vscode user

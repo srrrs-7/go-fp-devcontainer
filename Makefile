@@ -19,10 +19,15 @@ ATLAS_DIR = $(DB_MOD)
 #################
 # Dev Container #
 #################
-.PHONY: dev-cp run-api run-web run-migrate run-all
+.PHONY: dev-cp run-api run-web run-migrate run-all init-firewall
 
 dev-cp:
 	cp .devcontainer/compose.override.yaml.example .devcontainer/compose.override.yaml
+
+# Initialize firewall with whitelisted domains
+firewall:
+	@echo "Initializing firewall..."
+	sudo .devcontainer/firewall.sh
 
 # Run API server (port 8080)
 run-api:
@@ -48,10 +53,12 @@ run-all: run-migrate
 #############
 # Container #
 #############
-.PHONY: cp fmt vet lint cspell test tidy graph env
+.PHONY: cp check fmt vet lint cspell test tidy graph env
 
 cp:
 	cp compose.override.yaml.example compose.override.yaml
+
+check: fmt vet lint cspell test
 
 # Run tests (requires DB: docker compose up -d db)
 test: atlas-apply

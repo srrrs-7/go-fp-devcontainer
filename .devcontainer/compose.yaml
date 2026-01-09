@@ -6,6 +6,9 @@ services:
     volumes:
       - ..:/workspace/main:cached
     command: sleep infinity
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     depends_on:
       db:
         condition: service_healthy

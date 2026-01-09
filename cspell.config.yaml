@@ -8,12 +8,15 @@ words:
   - addgroup
   - adduser
   - anthropics
+  - ariga
   - arigaio
+  - atlasgo
   - bluemonday
   - Buildx
   - coverprofile
   - DB_DBNAME
   - DBTX
+  - dnsutils
   - elasticmq
   - errcheck
   - getenv
@@ -26,13 +29,17 @@ words:
   - healthcheck
   - HTMX
   - ineffassign
+  - ipsets
   - isready
   - ldflags
   - misspell
   - pkgs
+  - pypi
+  - pythonhosted
   - sqlc
   - sslmode
   - staticcheck
+  - statsig
   - synctest
   - templ
   - test
