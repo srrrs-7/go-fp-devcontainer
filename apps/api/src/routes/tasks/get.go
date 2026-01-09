@@ -1,9 +1,10 @@
 package tasks
 
 import (
-	"api/src/domain/model"
+	apperror "api/src/domain/error"
+	"api/src/domain/task"
+	"api/src/infra/rds/task_repository"
 	"api/src/routes/response"
-	usecase "api/src/usecase/task"
 	"net/http"
 	"utils/db/db"
 	"utils/types"
@@ -20,18 +21,15 @@ func NewGetHandler(q db.Querier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := types.Pipe2(
 			newGetRequest(r).validate(),
-			func(req getRequest) types.Result[model.Task, model.AppError] {
-				input := usecase.GetInput{
-					ID: model.NewTaskID(req.ID),
-				}
-				return usecase.GetTask(q, r.Context(), input)
+			func(req getRequest) types.Result[task.Task, apperror.AppError] {
+				return task_repository.FindTaskByID(q, r.Context(), task.NewTaskID(req.ID))
 			},
-			func(task model.Task) getResponse {
+			func(t task.Task) getResponse {
 				return getResponse{
-					ID:          task.ID.String(),
-					Title:       task.Title.String(),
-					Description: task.Description.String(),
-					Status:      task.Status.String(),
+					ID:          t.ID.String(),
+					Title:       t.Title.String(),
+					Description: t.Description.String(),
+					Status:      t.Status.String(),
 				}
 			},
 		)
@@ -40,7 +38,7 @@ func NewGetHandler(q db.Querier) http.HandlerFunc {
 			func(resp getResponse) {
 				response.OK(w, resp)
 			},
-			func(e model.AppError) {
+			func(e apperror.AppError) {
 				response.HandleAppError(w, e)
 			},
 		)

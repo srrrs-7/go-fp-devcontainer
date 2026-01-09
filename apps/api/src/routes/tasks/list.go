@@ -1,9 +1,10 @@
 package tasks
 
 import (
-	"api/src/domain/model"
+	apperror "api/src/domain/error"
+	"api/src/domain/task"
+	"api/src/infra/rds/task_repository"
 	"api/src/routes/response"
-	usecase "api/src/usecase/task"
 	"net/http"
 	"utils/db/db"
 	"utils/types"
@@ -24,18 +25,17 @@ func NewListHandler(q db.Querier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := types.Pipe2(
 			newListRequest(r).validate(),
-			func(req listRequest) types.Result[[]model.Task, model.AppError] {
-				input := usecase.ListInput{}
-				return usecase.ListTasks(q, r.Context(), input)
+			func(req listRequest) types.Result[[]task.Task, apperror.AppError] {
+				return task_repository.FindAllTasks(q, r.Context())
 			},
-			func(tasks []model.Task) listResponse {
+			func(tasks []task.Task) listResponse {
 				items := make([]taskItem, len(tasks))
-				for i, task := range tasks {
+				for i, t := range tasks {
 					items[i] = taskItem{
-						ID:          task.ID.String(),
-						Title:       task.Title.String(),
-						Description: task.Description.String(),
-						Status:      task.Status.String(),
+						ID:          t.ID.String(),
+						Title:       t.Title.String(),
+						Description: t.Description.String(),
+						Status:      t.Status.String(),
 					}
 				}
 				return listResponse{Tasks: items}
@@ -46,7 +46,7 @@ func NewListHandler(q db.Querier) http.HandlerFunc {
 			func(resp listResponse) {
 				response.OK(w, resp)
 			},
-			func(e model.AppError) {
+			func(e apperror.AppError) {
 				response.HandleAppError(w, e)
 			},
 		)

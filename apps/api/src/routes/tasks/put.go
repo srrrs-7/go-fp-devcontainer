@@ -1,9 +1,10 @@
 package tasks
 
 import (
-	"api/src/domain/model"
+	apperror "api/src/domain/error"
+	"api/src/domain/task"
+	"api/src/infra/rds/task_repository"
 	"api/src/routes/response"
-	usecase "api/src/usecase/task"
 	"net/http"
 	"utils/db/db"
 	"utils/types"
@@ -20,25 +21,20 @@ func NewPutHandler(q db.Querier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := types.Pipe2(
 			newPutRequest(r).validate(),
-			func(req putRequest) types.Result[model.Task, model.AppError] {
-				input := usecase.UpdateInput{
-					ID:          model.NewTaskID(req.ID),
-					Title:       model.TaskTitle(req.Title),
-					Description: model.TaskDescription(req.Description),
-					Status:      model.TaskStatus(req.Status),
+			func(req putRequest) types.Result[task.Task, apperror.AppError] {
+				cmd := task.TaskCmd{
+					Title:       task.TaskTitle(req.Title),
+					Description: task.TaskDescription(req.Description),
+					Status:      task.TaskStatus(req.Status),
 				}
-				return usecase.UpdateTask(
-					q,
-					r.Context(),
-					input,
-				)
+				return task_repository.UpdateTask(q, r.Context(), task.NewTaskID(req.ID), cmd)
 			},
-			func(task model.Task) putResponse {
+			func(t task.Task) putResponse {
 				return putResponse{
-					ID:          task.ID.String(),
-					Title:       task.Title.String(),
-					Description: task.Description.String(),
-					Status:      task.Status.String(),
+					ID:          t.ID.String(),
+					Title:       t.Title.String(),
+					Description: t.Description.String(),
+					Status:      t.Status.String(),
 				}
 			},
 		)
@@ -47,7 +43,7 @@ func NewPutHandler(q db.Querier) http.HandlerFunc {
 			func(resp putResponse) {
 				response.OK(w, resp)
 			},
-			func(e model.AppError) {
+			func(e apperror.AppError) {
 				response.HandleAppError(w, e)
 			},
 		)

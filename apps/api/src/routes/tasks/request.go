@@ -1,7 +1,7 @@
 package tasks
 
 import (
-	"api/src/domain/model"
+	apperror "api/src/domain/error"
 	"net/http"
 	"utils/types"
 
@@ -19,14 +19,14 @@ func newGetRequest(r *http.Request) getRequest {
 	}
 }
 
-func (r getRequest) validate() types.Result[getRequest, model.AppError] {
+func (r getRequest) validate() types.Result[getRequest, apperror.AppError] {
 	validate := validator.New()
 	if err := validate.Struct(r); err != nil {
-		return types.Err[getRequest, model.AppError](
-			model.NewValidationError(err, "GetRequest"),
+		return types.Err[getRequest, apperror.AppError](
+			apperror.NewValidationError(err, "GetRequest"),
 		)
 	}
-	return types.Ok[getRequest, model.AppError](r)
+	return types.Ok[getRequest, apperror.AppError](r)
 }
 
 type listRequest struct {
@@ -45,18 +45,18 @@ func newListRequest(r *http.Request) listRequest {
 	}
 }
 
-func (r listRequest) validate() types.Result[listRequest, model.AppError] {
+func (r listRequest) validate() types.Result[listRequest, apperror.AppError] {
 	sanitize := bluemonday.StrictPolicy()
 	r.Title = sanitize.Sanitize(r.Title)
 	r.Description = sanitize.Sanitize(r.Description)
 
 	validate := validator.New()
 	if err := validate.Struct(r); err != nil {
-		return types.Err[listRequest, model.AppError](
-			model.NewValidationError(err, "listRequest"),
+		return types.Err[listRequest, apperror.AppError](
+			apperror.NewValidationError(err, "listRequest"),
 		)
 	}
-	return types.Ok[listRequest, model.AppError](r)
+	return types.Ok[listRequest, apperror.AppError](r)
 }
 
 type postRequest struct {
@@ -71,18 +71,18 @@ func newPostRequest(r *http.Request) postRequest {
 	}
 }
 
-func (r postRequest) validate() types.Result[postRequest, model.AppError] {
+func (r postRequest) validate() types.Result[postRequest, apperror.AppError] {
 	sanitize := bluemonday.StrictPolicy()
 	r.Title = sanitize.Sanitize(r.Title)
 	r.Description = sanitize.Sanitize(r.Description)
 
 	validate := validator.New()
 	if err := validate.Struct(r); err != nil {
-		return types.Err[postRequest, model.AppError](
-			model.NewValidationError(err, "postRequest"),
+		return types.Err[postRequest, apperror.AppError](
+			apperror.NewValidationError(err, "postRequest"),
 		)
 	}
-	return types.Ok[postRequest, model.AppError](r)
+	return types.Ok[postRequest, apperror.AppError](r)
 }
 
 type putRequest struct {
@@ -101,16 +101,16 @@ func newPutRequest(r *http.Request) putRequest {
 	}
 }
 
-func (r putRequest) validate() types.Result[putRequest, model.AppError] {
+func (r putRequest) validate() types.Result[putRequest, apperror.AppError] {
 	sanitize := bluemonday.StrictPolicy()
 	r.Title = sanitize.Sanitize(r.Title)
 	r.Description = sanitize.Sanitize(r.Description)
 
 	validate := validator.New()
 	if err := validate.Struct(r); err != nil {
-		return types.Err[putRequest, model.AppError](
-			model.NewValidationError(err, "putRequest"),
+		return types.Err[putRequest, apperror.AppError](
+			apperror.NewValidationError(err, "putRequest"),
 		)
 	}
-	return types.Ok[putRequest, model.AppError](r)
+	return types.Ok[putRequest, apperror.AppError](r)
 }

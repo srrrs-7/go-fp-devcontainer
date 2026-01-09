@@ -1,7 +1,8 @@
 package task_repository
 
 import (
-	"api/src/domain/model"
+	apperror "api/src/domain/error"
+	"api/src/domain/task"
 	"context"
 	"database/sql"
 	"errors"
@@ -11,36 +12,36 @@ import (
 	"github.com/google/uuid"
 )
 
-func CreateTask(q db.Querier, ctx context.Context, cmd model.TaskCmd) types.Result[model.Task, model.AppError] {
+func CreateTask(q db.Querier, ctx context.Context, cmd task.TaskCmd) types.Result[task.Task, apperror.AppError] {
 	return types.Map(
 		types.MapErr(
 			types.FromPair(q.CreateTask(ctx, db.CreateTaskParams{
 				Title:       cmd.Title.String(),
 				Description: sql.NullString{String: cmd.Description.String(), Valid: true},
-				Status:      model.TaskStatusPending.String(), // Default status
-				Priority:    "medium",                         // Default priority
+				Status:      task.TaskStatusPending.String(), // Default status
+				Priority:    "medium",                        // Default priority
 			})),
-			func(e error) model.AppError {
-				return model.NewDatabaseError(e, "TaskRepository")
+			func(e error) apperror.AppError {
+				return apperror.NewDatabaseError(e, "TaskRepository")
 			},
 		),
-		func(t db.Task) model.Task {
-			return model.Task{
-				ID:          model.TaskID(t.ID),
-				Title:       model.TaskTitle(t.Title),
-				Description: model.TaskDescription(t.Description.String),
-				Status:      model.TaskStatus(t.Status),
+		func(t db.Task) task.Task {
+			return task.Task{
+				ID:          task.TaskID(t.ID),
+				Title:       task.TaskTitle(t.Title),
+				Description: task.TaskDescription(t.Description.String),
+				Status:      task.TaskStatus(t.Status),
 			}
 		},
 	)
 }
 
-func UpdateTask(q db.Querier, ctx context.Context, id model.TaskID, cmd model.TaskCmd) types.Result[model.Task, model.AppError] {
+func UpdateTask(q db.Querier, ctx context.Context, id task.TaskID, cmd task.TaskCmd) types.Result[task.Task, apperror.AppError] {
 	// Status logic: use cmd.Status if provided, else pending? Or default logic?
 	// Assuming cmd.Status is populated correctly by caller
 	status := cmd.Status.String()
 	if status == "" {
-		status = model.TaskStatusPending.String()
+		status = task.TaskStatusPending.String()
 	}
 
 	// Note: priority and due_date are not yet in domain model, setting defaults or ignoring
@@ -53,19 +54,19 @@ func UpdateTask(q db.Querier, ctx context.Context, id model.TaskID, cmd model.Ta
 				Status:      sql.NullString{String: status, Valid: true},
 				Priority:    sql.NullString{String: "medium", Valid: true}, // Default
 			})),
-			func(e error) model.AppError {
+			func(e error) apperror.AppError {
 				if errors.Is(e, sql.ErrNoRows) {
-					return model.NewNotFoundError(e, "Task")
+					return apperror.NewNotFoundError(e, "Task")
 				}
-				return model.NewDatabaseError(e, "TaskRepository")
+				return apperror.NewDatabaseError(e, "TaskRepository")
 			},
 		),
-		func(t db.Task) model.Task {
-			return model.Task{
-				ID:          model.TaskID(t.ID),
-				Title:       model.TaskTitle(t.Title),
-				Description: model.TaskDescription(t.Description.String),
-				Status:      model.TaskStatus(t.Status),
+		func(t db.Task) task.Task {
+			return task.Task{
+				ID:          task.TaskID(t.ID),
+				Title:       task.TaskTitle(t.Title),
+				Description: task.TaskDescription(t.Description.String),
+				Status:      task.TaskStatus(t.Status),
 			}
 		},
 	)

@@ -1,7 +1,7 @@
 package response
 
 import (
-	"api/src/domain/model"
+	apperror "api/src/domain/error"
 	"encoding/json"
 	"net/http"
 )
@@ -33,25 +33,25 @@ func NoContent(w http.ResponseWriter) {
 }
 
 // handleAppError - AppErrorを網羅的に処理し、適切なHTTPレスポンスを返す
-func HandleAppError(w http.ResponseWriter, err model.AppError) {
+func HandleAppError(w http.ResponseWriter, err apperror.AppError) {
 	errName := err.ErrorName()
 
 	switch errName {
-	case model.ValidationErrorName:
+	case apperror.ValidationErrorName:
 		badRequest(w, err)
-	case model.NotFoundErrorName:
+	case apperror.NotFoundErrorName:
 		notFound(w, err)
-	case model.UnauthorizedErrorName:
+	case apperror.UnauthorizedErrorName:
 		unauthorized(w, err)
-	case model.ForbiddenErrorName:
+	case apperror.ForbiddenErrorName:
 		forbidden(w, err)
-	case model.BadRequestErrorName:
+	case apperror.BadRequestErrorName:
 		badRequest(w, err)
-	case model.ConflictErrorName:
+	case apperror.ConflictErrorName:
 		conflict(w, err)
-	case model.DatabaseErrorName:
+	case apperror.DatabaseErrorName:
 		internalError(w, err)
-	case model.InternalServerErrorName:
+	case apperror.InternalServerErrorName:
 		internalError(w, err)
 	default:
 		unexpectedError(w, err)
@@ -64,7 +64,7 @@ type ErrorResponse struct {
 	Domain  string `json:"domain"`
 }
 
-func newErrorResponse(err model.AppError) ErrorResponse {
+func newErrorResponse(err apperror.AppError) ErrorResponse {
 	return ErrorResponse{
 		Message: err.Error(),
 		Type:    err.ErrorName(),
@@ -72,38 +72,38 @@ func newErrorResponse(err model.AppError) ErrorResponse {
 	}
 }
 
-func writeError(w http.ResponseWriter, status int, err model.AppError) {
+func writeError(w http.ResponseWriter, status int, err apperror.AppError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(newErrorResponse(err)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if encErr := json.NewEncoder(w).Encode(newErrorResponse(err)); encErr != nil {
+		http.Error(w, encErr.Error(), http.StatusInternalServerError)
 	}
 }
 
-func badRequest(w http.ResponseWriter, err model.AppError) {
+func badRequest(w http.ResponseWriter, err apperror.AppError) {
 	writeError(w, http.StatusBadRequest, err)
 }
 
-func notFound(w http.ResponseWriter, err model.AppError) {
+func notFound(w http.ResponseWriter, err apperror.AppError) {
 	writeError(w, http.StatusNotFound, err)
 }
 
-func unauthorized(w http.ResponseWriter, err model.AppError) {
+func unauthorized(w http.ResponseWriter, err apperror.AppError) {
 	writeError(w, http.StatusUnauthorized, err)
 }
 
-func internalError(w http.ResponseWriter, err model.AppError) {
+func internalError(w http.ResponseWriter, err apperror.AppError) {
 	writeError(w, http.StatusInternalServerError, err)
 }
 
-func forbidden(w http.ResponseWriter, err model.AppError) {
+func forbidden(w http.ResponseWriter, err apperror.AppError) {
 	writeError(w, http.StatusForbidden, err)
 }
 
-func conflict(w http.ResponseWriter, err model.AppError) {
+func conflict(w http.ResponseWriter, err apperror.AppError) {
 	writeError(w, http.StatusConflict, err)
 }
 
-func unexpectedError(w http.ResponseWriter, err model.AppError) {
+func unexpectedError(w http.ResponseWriter, err apperror.AppError) {
 	writeError(w, http.StatusInternalServerError, err)
 }

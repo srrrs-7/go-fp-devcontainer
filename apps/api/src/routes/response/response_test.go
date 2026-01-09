@@ -1,7 +1,7 @@
 package response
 
 import (
-	"api/src/domain/model"
+	apperror "api/src/domain/error"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -125,7 +125,7 @@ func TestCreated(t *testing.T) {
 
 func TestHandleAppError(t *testing.T) {
 	type args struct {
-		err model.AppError
+		err apperror.AppError
 	}
 	type expected struct {
 		statusCode  int
@@ -141,13 +141,13 @@ func TestHandleAppError(t *testing.T) {
 		{
 			testName: "bad request",
 			args: args{
-				err: model.NewBadRequestError(nil, "TestDomain"),
+				err: apperror.NewBadRequestError(nil, "TestDomain"),
 			},
 			expected: expected{
 				statusCode:  http.StatusBadRequest,
 				contentType: "application/json",
 				body: map[string]string{
-					"type":    model.BadRequestErrorName,
+					"type":    apperror.BadRequestErrorName,
 					"domain":  "TestDomain",
 					"message": "BadRequestError [TestDomain]",
 				},
