@@ -9,6 +9,9 @@ whoami
 # DB migrations
 make atlas-apply
 
+# Git hooks
+make hooks
+
 # go templ installation (HTML templating library)
 go install github.com/a-h/templ/cmd/templ@latest
 
