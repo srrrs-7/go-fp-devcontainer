@@ -203,6 +203,31 @@ atlas-clean:
 	fi
 
 #############
+# Git Hooks #
+#############
+.PHONY: hooks hooks-install hooks-uninstall
+
+# Install git hooks
+hooks-install:
+	@echo "Installing git hooks..."
+	@mkdir -p .githooks
+	@printf '#!/bin/sh\necho "Running pre-commit hooks..."\nmake fmt && make vet\n' > .githooks/pre-commit
+	@printf '#!/bin/sh\necho "Running pre-push hooks..."\nmake test\n' > .githooks/pre-push
+	@chmod +x .githooks/pre-commit .githooks/pre-push
+	@git config core.hooksPath .githooks
+	@echo "Git hooks installed successfully!"
+
+# Uninstall git hooks
+hooks-uninstall:
+	@echo "Uninstalling git hooks..."
+	@git config --unset core.hooksPath
+	@rm -rf .githooks
+	@echo "Git hooks uninstalled."
+
+# Alias for hooks-install
+hooks: hooks-install
+
+#############
 # Terraform #
 #############
 .PHONY: tf-fmt
