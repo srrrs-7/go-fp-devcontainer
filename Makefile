@@ -48,7 +48,7 @@ run-all: run-migrate
 #############
 # Container #
 #############
-.PHONY: cp fmt vet test tidy graph env
+.PHONY: cp fmt vet lint cspell test tidy graph env
 
 cp:
 	cp compose.override.yaml.example compose.override.yaml
@@ -73,6 +73,14 @@ vet:
 	for mod in $(MODS); do \
 		(cd $$mod && go vet ./...); \
 	done
+
+lint:
+	for mod in $(MODS); do \
+		(cd $$mod && golangci-lint run ./...); \
+	done
+
+cspell:
+	misspell -error -locale US .
 
 graph:
 	for mod in $(MODS); do \

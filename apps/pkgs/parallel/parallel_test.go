@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// sleepWithContext sleeps for the given duration, but returns early if context is cancelled.
+// sleepWithContext sleeps for the given duration, but returns early if context is canceled.
 func sleepWithContext(ctx context.Context, d time.Duration) error {
 	select {
 	case <-ctx.Done():
@@ -115,7 +115,7 @@ func TestParallel2(t *testing.T) {
 		})
 	})
 
-	t.Run("context already cancelled", func(t *testing.T) {
+	t.Run("context already canceled", func(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
@@ -264,7 +264,7 @@ func TestParallel3(t *testing.T) {
 		})
 	})
 
-	t.Run("context already cancelled", func(t *testing.T) {
+	t.Run("context already canceled", func(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
@@ -405,7 +405,7 @@ func TestParallel4(t *testing.T) {
 		})
 	})
 
-	t.Run("context already cancelled", func(t *testing.T) {
+	t.Run("context already canceled", func(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
@@ -561,7 +561,7 @@ func TestParallel5(t *testing.T) {
 		})
 	})
 
-	t.Run("context already cancelled", func(t *testing.T) {
+	t.Run("context already canceled", func(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()

@@ -15,15 +15,24 @@ words:
   - DB_DBNAME
   - DBTX
   - elasticmq
+  - errcheck
   - getenv
   - GOARCH
+  - gofmt
+  - goimports
+  - golangci
+  - gosimple
+  - govet
   - healthcheck
   - HTMX
+  - ineffassign
   - isready
   - ldflags
+  - misspell
   - pkgs
   - sqlc
   - sslmode
+  - staticcheck
   - synctest
   - templ
   - test
