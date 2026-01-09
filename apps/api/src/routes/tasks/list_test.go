@@ -63,6 +63,7 @@ func TestListHandler(t *testing.T) {
 				tt.setup(t, q)
 
 				req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
+				testutil.SetAuthHeader(req)
 				w := httptest.NewRecorder()
 
 				handler := NewListHandler(q)
@@ -101,6 +102,7 @@ func TestListHandler(t *testing.T) {
 		}
 
 		req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
+		testutil.SetAuthHeader(req)
 		w := httptest.NewRecorder()
 
 		handler := NewListHandler(q)

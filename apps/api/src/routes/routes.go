@@ -1,6 +1,7 @@
 package routes
 
 import (
+	mw "api/src/routes/middleware"
 	"api/src/routes/tasks"
 	"database/sql"
 	"net/http"
@@ -17,8 +18,8 @@ func NewRouter(conn *sql.DB) http.Handler {
 	// ミドルウェア
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(mw.Logger)
 
 	// health
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -28,6 +29,9 @@ func NewRouter(conn *sql.DB) http.Handler {
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/v1", func(r chi.Router) {
+			// Bearer認証を適用
+			r.Use(mw.BearerAuth(validateToken))
+
 			// Tasks
 			r.Route("/tasks", func(r chi.Router) {
 				r.Get("/", tasks.NewListHandler(q))
@@ -39,4 +43,10 @@ func NewRouter(conn *sql.DB) http.Handler {
 	})
 
 	return r
+}
+
+// validateToken はトークンを検証する（TODO: 実際の検証ロジックに置き換え）
+func validateToken(token string) (bool, error) {
+	// TODO: JWT検証やCognito検証などを実装
+	return token != "", nil
 }

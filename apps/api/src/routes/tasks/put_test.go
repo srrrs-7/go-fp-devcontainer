@@ -98,6 +98,7 @@ func TestPutHandler(t *testing.T) {
 				}
 				req := httptest.NewRequest(http.MethodPut, "/tasks", strings.NewReader(formData.Encode()))
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				testutil.SetAuthHeader(req)
 
 				w := httptest.NewRecorder()
 
@@ -160,6 +161,7 @@ func TestPutHandler(t *testing.T) {
 				}
 				req := httptest.NewRequest(http.MethodPut, "/tasks", strings.NewReader(formData.Encode()))
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				testutil.SetAuthHeader(req)
 
 				w := httptest.NewRecorder()
 

@@ -53,6 +53,7 @@ func TestGetHandler(t *testing.T) {
 				taskID := tt.setup(t, q)
 
 				req := httptest.NewRequest(http.MethodGet, "/tasks?id="+taskID, nil)
+				testutil.SetAuthHeader(req)
 				w := httptest.NewRecorder()
 
 				handler := NewGetHandler(q)
@@ -101,6 +102,7 @@ func TestGetHandler(t *testing.T) {
 				q := testutil.SetupTestTx(t)
 
 				req := httptest.NewRequest(http.MethodGet, "/tasks?id="+tt.taskID, nil)
+				testutil.SetAuthHeader(req)
 				w := httptest.NewRecorder()
 
 				handler := NewGetHandler(q)
