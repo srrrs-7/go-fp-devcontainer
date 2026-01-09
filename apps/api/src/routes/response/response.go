@@ -1,7 +1,7 @@
 package response
 
 import (
-	apperror "api/src/domain/error"
+	"api/src/domain/apperror"
 	"encoding/json"
 	"net/http"
 )

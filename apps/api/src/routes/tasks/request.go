@@ -1,7 +1,7 @@
 package tasks
 
 import (
-	apperror "api/src/domain/error"
+	"api/src/domain/apperror"
 	"net/http"
 	"utils/types"
 

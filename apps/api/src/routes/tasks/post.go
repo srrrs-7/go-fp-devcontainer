@@ -1,7 +1,7 @@
 package tasks
 
 import (
-	apperror "api/src/domain/error"
+	"api/src/domain/apperror"
 	"api/src/domain/task"
 	"api/src/infra/rds/task_repository"
 	"api/src/routes/response"

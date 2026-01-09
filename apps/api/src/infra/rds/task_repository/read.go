@@ -1,7 +1,7 @@
 package task_repository
 
 import (
-	apperror "api/src/domain/error"
+	"api/src/domain/apperror"
 	"api/src/domain/task"
 	"context"
 	"database/sql"
