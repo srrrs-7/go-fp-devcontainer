@@ -27,6 +27,7 @@ words:
   - synctest
   - templ
   - test
+  - testutil
   - tfstate
   - tfvars
   - tzdata
