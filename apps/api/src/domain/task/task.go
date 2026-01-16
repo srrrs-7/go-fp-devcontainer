@@ -56,3 +56,11 @@ type Task struct {
 	Description TaskDescription
 	Status      TaskStatus
 }
+
+func (t Task) IsCompleted() bool {
+	return t.Status == TaskStatusCompleted
+}
+
+func (t Task) IsPending() bool {
+	return t.Status == TaskStatusPending
+}
