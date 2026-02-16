@@ -21,7 +21,7 @@ type taskItem struct {
 	Status      string `json:"status"`
 }
 
-func NewListHandler(q db.Querier) http.HandlerFunc {
+func ListHandler(q db.Querier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := types.Pipe2(
 			newListRequest(r).validate(),

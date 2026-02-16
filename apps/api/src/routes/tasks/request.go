@@ -2,12 +2,20 @@ package tasks
 
 import (
 	"api/src/domain/apperror"
+	"encoding/json"
 	"net/http"
 	"utils/types"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/microcosm-cc/bluemonday"
 )
+
+// Global validator instance for performance
+var validate = validator.New()
+
+// Global sanitizer instance
+var sanitize = bluemonday.StrictPolicy()
 
 type getRequest struct {
 	ID string `json:"id" validate:"required,uuid"`
@@ -15,12 +23,11 @@ type getRequest struct {
 
 func newGetRequest(r *http.Request) getRequest {
 	return getRequest{
-		ID: r.URL.Query().Get("id"),
+		ID: chi.URLParam(r, "id"),
 	}
 }
 
 func (r getRequest) validate() types.Result[getRequest, apperror.AppError] {
-	validate := validator.New()
 	if err := validate.Struct(r); err != nil {
 		return types.Err[getRequest, apperror.AppError](
 			apperror.NewValidationError(err, "GetRequest"),
@@ -46,11 +53,9 @@ func newListRequest(r *http.Request) listRequest {
 }
 
 func (r listRequest) validate() types.Result[listRequest, apperror.AppError] {
-	sanitize := bluemonday.StrictPolicy()
 	r.Title = sanitize.Sanitize(r.Title)
 	r.Description = sanitize.Sanitize(r.Description)
 
-	validate := validator.New()
 	if err := validate.Struct(r); err != nil {
 		return types.Err[listRequest, apperror.AppError](
 			apperror.NewValidationError(err, "listRequest"),
@@ -64,19 +69,20 @@ type postRequest struct {
 	Description string `json:"description" validate:"max=500"`
 }
 
-func newPostRequest(r *http.Request) postRequest {
-	return postRequest{
-		Title:       r.FormValue("title"),
-		Description: r.FormValue("description"),
+func newPostRequest(r *http.Request) types.Result[postRequest, apperror.AppError] {
+	var req postRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return types.Err[postRequest, apperror.AppError](
+			apperror.NewBadRequestError(err, "postRequest"),
+		)
 	}
+	return types.Ok[postRequest, apperror.AppError](req)
 }
 
 func (r postRequest) validate() types.Result[postRequest, apperror.AppError] {
-	sanitize := bluemonday.StrictPolicy()
 	r.Title = sanitize.Sanitize(r.Title)
 	r.Description = sanitize.Sanitize(r.Description)
 
-	validate := validator.New()
 	if err := validate.Struct(r); err != nil {
 		return types.Err[postRequest, apperror.AppError](
 			apperror.NewValidationError(err, "postRequest"),
@@ -86,27 +92,28 @@ func (r postRequest) validate() types.Result[postRequest, apperror.AppError] {
 }
 
 type putRequest struct {
-	ID          string `json:"id" validate:"required,uuid"`
+	ID          string `json:"-" validate:"required,uuid"`
 	Title       string `json:"title" validate:"required,min=3,max=100"`
 	Description string `json:"description" validate:"max=500"`
-	Status      string `json:"status"`
+	Status      string `json:"status" validate:"omitempty,oneof=pending completed"`
 }
 
-func newPutRequest(r *http.Request) putRequest {
-	return putRequest{
-		ID:          r.FormValue("id"),
-		Title:       r.FormValue("title"),
-		Description: r.FormValue("description"),
-		Status:      r.FormValue("status"),
+func newPutRequest(r *http.Request) types.Result[putRequest, apperror.AppError] {
+	var req putRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return types.Err[putRequest, apperror.AppError](
+			apperror.NewBadRequestError(err, "putRequest"),
+		)
 	}
+	// Get ID from URL path parameter
+	req.ID = chi.URLParam(r, "id")
+	return types.Ok[putRequest, apperror.AppError](req)
 }
 
 func (r putRequest) validate() types.Result[putRequest, apperror.AppError] {
-	sanitize := bluemonday.StrictPolicy()
 	r.Title = sanitize.Sanitize(r.Title)
 	r.Description = sanitize.Sanitize(r.Description)
 
-	validate := validator.New()
 	if err := validate.Struct(r); err != nil {
 		return types.Err[putRequest, apperror.AppError](
 			apperror.NewValidationError(err, "putRequest"),

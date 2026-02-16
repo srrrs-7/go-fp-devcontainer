@@ -23,12 +23,10 @@ func Created(w http.ResponseWriter, body any) {
 }
 
 func Accepted(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 }
 
 func NoContent(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
 }
 

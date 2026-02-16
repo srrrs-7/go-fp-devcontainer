@@ -7,3 +7,12 @@ type TaskCmd struct {
 	Description TaskDescription
 	Status      TaskStatus
 }
+
+// NewTaskCmd creates a new TaskCmd with the given properties.
+func NewTaskCmd(title TaskTitle, description TaskDescription, status TaskStatus) TaskCmd {
+	return TaskCmd{
+		Title:       title,
+		Description: description,
+		Status:      status,
+	}
+}

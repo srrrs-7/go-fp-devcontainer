@@ -17,16 +17,25 @@ type putResponse struct {
 	Status      string `json:"status"`
 }
 
-func NewPutHandler(q db.Querier) http.HandlerFunc {
+func PutHandler(q db.Querier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := types.Pipe2(
-			newPutRequest(r).validate(),
+			types.FlatMap(
+				newPutRequest(r),
+				func(req putRequest) types.Result[putRequest, apperror.AppError] {
+					return req.validate()
+				},
+			),
 			func(req putRequest) types.Result[task.Task, apperror.AppError] {
-				cmd := task.TaskCmd{
-					Title:       task.TaskTitle(req.Title),
-					Description: task.TaskDescription(req.Description),
-					Status:      task.TaskStatus(req.Status),
+				status := task.TaskStatusPending
+				if req.Status != "" {
+					status = task.TaskStatus(req.Status)
 				}
+				cmd := task.NewTaskCmd(
+					task.TaskTitle(req.Title),
+					task.TaskDescription(req.Description),
+					status,
+				)
 				return task_repository.UpdateTask(q, r.Context(), task.NewTaskID(req.ID), cmd)
 			},
 			func(t task.Task) putResponse {

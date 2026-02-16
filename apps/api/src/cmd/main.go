@@ -33,7 +33,12 @@ func main() {
 		logger.Error("Failed to connect to database")
 		os.Exit(1)
 	}
-	dbConn := databaseResult.UnwrapOr(nil) // We checked IsErr, so this is safe or we can handle better
+	dbConn := databaseResult.UnwrapOr(nil) // We checked IsErr, so this is safe
+	defer func() {
+		if err := dbConn.Close(); err != nil {
+			logger.Error("Failed to close database connection", "error", err)
+		}
+	}()
 
 	// Router
 	r := routes.NewRouter(dbConn)
@@ -49,9 +54,9 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		logger.Info("Starting server on port " + port)
+		logger.Info("Starting server", "port", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("Server failed to start: " + err.Error())
+			logger.Error("Server failed to start", "error", err)
 			os.Exit(1)
 		}
 	}()
@@ -69,9 +74,9 @@ func main() {
 
 	// Attempt graceful shutdown
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("Server forced to shutdown: " + err.Error())
+		logger.Error("Server forced to shutdown", "error", err)
 		os.Exit(1)
 	}
 
-	logger.Info("Server exited")
+	logger.Info("Server exited gracefully")
 }

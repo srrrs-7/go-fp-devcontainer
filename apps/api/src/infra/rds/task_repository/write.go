@@ -13,15 +13,22 @@ import (
 )
 
 func CreateTask(q db.Querier, ctx context.Context, cmd task.TaskCmd) types.Result[task.Task, apperror.AppError] {
+	ctx, cancel := context.WithTimeout(ctx, dbTimeout)
+	defer cancel()
+
+	desc := cmd.Description.String()
 	return types.Map(
 		types.MapErr(
 			types.FromPair(q.CreateTask(ctx, db.CreateTaskParams{
 				Title:       cmd.Title.String(),
-				Description: sql.NullString{String: cmd.Description.String(), Valid: true},
+				Description: sql.NullString{String: desc, Valid: desc != ""},
 				Status:      task.TaskStatusPending.String(), // Default status
 				Priority:    "medium",                        // Default priority
 			})),
 			func(e error) apperror.AppError {
+				if errors.Is(e, context.DeadlineExceeded) {
+					return apperror.NewInternalServerError(e, "TaskRepository")
+				}
 				return apperror.NewDatabaseError(e, "TaskRepository")
 			},
 		),
@@ -37,26 +44,32 @@ func CreateTask(q db.Querier, ctx context.Context, cmd task.TaskCmd) types.Resul
 }
 
 func UpdateTask(q db.Querier, ctx context.Context, id task.TaskID, cmd task.TaskCmd) types.Result[task.Task, apperror.AppError] {
-	// Status logic: use cmd.Status if provided, else pending? Or default logic?
-	// Assuming cmd.Status is populated correctly by caller
+	ctx, cancel := context.WithTimeout(ctx, dbTimeout)
+	defer cancel()
+
 	status := cmd.Status.String()
 	if status == "" {
 		status = task.TaskStatusPending.String()
 	}
 
-	// Note: priority and due_date are not yet in domain model, setting defaults or ignoring
+	title := cmd.Title.String()
+	desc := cmd.Description.String()
+
 	return types.Map(
 		types.MapErr(
 			types.FromPair(q.UpdateTask(ctx, db.UpdateTaskParams{
 				ID:          uuid.UUID(id),
-				Title:       sql.NullString{String: cmd.Title.String(), Valid: true},
-				Description: sql.NullString{String: cmd.Description.String(), Valid: true},
-				Status:      sql.NullString{String: status, Valid: true},
+				Title:       sql.NullString{String: title, Valid: title != ""},
+				Description: sql.NullString{String: desc, Valid: desc != ""},
+				Status:      sql.NullString{String: status, Valid: status != ""},
 				Priority:    sql.NullString{String: "medium", Valid: true}, // Default
 			})),
 			func(e error) apperror.AppError {
 				if errors.Is(e, sql.ErrNoRows) {
 					return apperror.NewNotFoundError(e, "Task")
+				}
+				if errors.Is(e, context.DeadlineExceeded) {
+					return apperror.NewInternalServerError(e, "TaskRepository")
 				}
 				return apperror.NewDatabaseError(e, "TaskRepository")
 			},

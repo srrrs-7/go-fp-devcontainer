@@ -1,11 +1,10 @@
 package tasks
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"strings"
 	"testing"
 	"utils/testutil"
 
@@ -24,12 +23,12 @@ func TestPostHandler(t *testing.T) {
 
 		tests := []struct {
 			name     string
-			formData map[string]string
+			reqBody  map[string]string
 			expected expected
 		}{
 			{
 				name: "create task with title and description",
-				formData: map[string]string{
+				reqBody: map[string]string{
 					"title":       "New Integration Task",
 					"description": "Task created in integration test",
 				},
@@ -42,7 +41,7 @@ func TestPostHandler(t *testing.T) {
 			},
 			{
 				name: "create task with title only",
-				formData: map[string]string{
+				reqBody: map[string]string{
 					"title": "Task Without Description",
 				},
 				expected: expected{
@@ -58,17 +57,17 @@ func TestPostHandler(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				q := testutil.SetupTestTx(t)
 
-				formData := url.Values{}
-				for k, v := range tt.formData {
-					formData.Set(k, v)
+				jsonBody, err := json.Marshal(tt.reqBody)
+				if err != nil {
+					t.Fatalf("failed to marshal request body: %v", err)
 				}
-				req := httptest.NewRequest(http.MethodPost, "/tasks", strings.NewReader(formData.Encode()))
-				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				req := httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewReader(jsonBody))
+				req.Header.Set("Content-Type", "application/json")
 				testutil.SetAuthHeader(req)
 
 				w := httptest.NewRecorder()
 
-				handler := NewPostHandler(q)
+				handler := PostHandler(q)
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()

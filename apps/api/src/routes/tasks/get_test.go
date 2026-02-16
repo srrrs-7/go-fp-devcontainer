@@ -9,6 +9,7 @@ import (
 	"utils/db/db"
 	"utils/testutil"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -52,11 +53,17 @@ func TestGetHandler(t *testing.T) {
 				q := testutil.SetupTestTx(t)
 				taskID := tt.setup(t, q)
 
-				req := httptest.NewRequest(http.MethodGet, "/tasks?id="+taskID, nil)
+				req := httptest.NewRequest(http.MethodGet, "/tasks/"+taskID, nil)
+
+				// Set URL params for chi router
+				rctx := chi.NewRouteContext()
+				rctx.URLParams.Add("id", taskID)
+				req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
 				testutil.SetAuthHeader(req)
 				w := httptest.NewRecorder()
 
-				handler := NewGetHandler(q)
+				handler := GetHandler(q)
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()
@@ -101,11 +108,17 @@ func TestGetHandler(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				q := testutil.SetupTestTx(t)
 
-				req := httptest.NewRequest(http.MethodGet, "/tasks?id="+tt.taskID, nil)
+				req := httptest.NewRequest(http.MethodGet, "/tasks/"+tt.taskID, nil)
+
+				// Set URL params for chi router
+				rctx := chi.NewRouteContext()
+				rctx.URLParams.Add("id", tt.taskID)
+				req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
 				testutil.SetAuthHeader(req)
 				w := httptest.NewRecorder()
 
-				handler := NewGetHandler(q)
+				handler := GetHandler(q)
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()

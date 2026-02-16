@@ -17,7 +17,7 @@ type getResponse struct {
 	Status      string `json:"status"`
 }
 
-func NewGetHandler(q db.Querier) http.HandlerFunc {
+func GetHandler(q db.Querier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := types.Pipe2(
 			newGetRequest(r).validate(),

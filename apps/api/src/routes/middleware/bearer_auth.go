@@ -2,16 +2,18 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"utils/logger"
 )
 
-type contextKey string
+// contextKey is an unexported type to prevent context key collisions
+type contextKey int
 
 const (
-	// BearerTokenKey is the context key for the bearer token
-	BearerTokenKey contextKey = "bearer_token"
+	// bearerTokenKey is the context key for the bearer token
+	bearerTokenKey contextKey = iota
 )
 
 // TokenValidator is a function type for validating bearer tokens
@@ -52,20 +54,24 @@ func BearerAuth(validate TokenValidator) func(http.Handler) http.Handler {
 			}
 
 			// Store token in context for downstream handlers
-			ctx := context.WithValue(r.Context(), BearerTokenKey, token)
+			ctx := context.WithValue(r.Context(), bearerTokenKey, token)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
 func unauthorized(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
-	w.Write([]byte(`{"error":"` + message + `"}`))
+	json.NewEncoder(w).Encode(errorResponse{Error: message})
 }
 
 // GetBearerToken retrieves the bearer token from context
 func GetBearerToken(ctx context.Context) string {
-	token, _ := ctx.Value(BearerTokenKey).(string)
+	token, _ := ctx.Value(bearerTokenKey).(string)
 	return token
 }

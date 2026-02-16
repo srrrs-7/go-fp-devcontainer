@@ -66,7 +66,7 @@ func TestListHandler(t *testing.T) {
 				testutil.SetAuthHeader(req)
 				w := httptest.NewRecorder()
 
-				handler := NewListHandler(q)
+				handler := ListHandler(q)
 				handler.ServeHTTP(w, req)
 
 				resp := w.Result()
@@ -105,7 +105,7 @@ func TestListHandler(t *testing.T) {
 		testutil.SetAuthHeader(req)
 		w := httptest.NewRecorder()
 
-		handler := NewListHandler(q)
+		handler := ListHandler(q)
 		handler.ServeHTTP(w, req)
 
 		var result struct {
