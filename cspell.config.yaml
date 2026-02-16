@@ -32,6 +32,7 @@ words:
   - ineffassign
   - ipsets
   - isready
+  - keyshard
   - ldflags
   - misspell
   - pkgs
