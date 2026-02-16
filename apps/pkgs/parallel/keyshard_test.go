@@ -112,7 +112,7 @@ func TestKeyShardWorker_SameKeyOrderPreserved(t *testing.T) {
 	})
 
 	n := 20
-	for i := 0; i < n; i++ {
+	for range n {
 		ks.Send(ctx, "alpha")
 		ks.Send(ctx, "beta")
 	}
@@ -279,7 +279,7 @@ func TestKeyShardWorker_ConcurrentSend(t *testing.T) {
 	})
 
 	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()

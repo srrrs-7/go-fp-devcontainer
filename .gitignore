@@ -11,6 +11,3 @@ setup.personal.sh
 terraform.tfvars
 *.tfstate
 *.tfstate.backup
-
-# Claude Code insights reports (auto-generated)
-.claude/reports/*.md

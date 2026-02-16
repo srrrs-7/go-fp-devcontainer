@@ -12,7 +12,7 @@ import (
 // TestOk tests the Ok constructor
 func TestOk(t *testing.T) {
 	type args struct {
-		value interface{}
+		value any
 	}
 	type expected struct {
 		isOk bool
@@ -106,15 +106,15 @@ func TestOk(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			var result types.Result[interface{}, error]
+			var result types.Result[any, error]
 
 			switch v := tt.args.value.(type) {
 			case int:
-				result = types.Result[interface{}, error](types.Ok[interface{}, error](v))
+				result = types.Result[any, error](types.Ok[any, error](v))
 			case string:
-				result = types.Result[interface{}, error](types.Ok[interface{}, error](v))
+				result = types.Result[any, error](types.Ok[any, error](v))
 			default:
-				result = types.Ok[interface{}, error](v)
+				result = types.Ok[any, error](v)
 			}
 
 			assert.Equal(t, tt.expected.isOk, result.IsOk())

@@ -34,7 +34,9 @@ REPORT_DIR="${REPO_ROOT}/.claude/reports"
 mkdir -p "$REPORT_DIR"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 COMMIT_SHORT=$(git rev-parse --short HEAD)
-REPORT_FILE="${REPORT_DIR}/${TIMESTAMP}-${COMMIT_SHORT}.md"
+# Generate filename: YYYYMMDD-HHMMSS-<sanitized-commit-title>.md
+COMMIT_TITLE=$(git log -1 --pretty=format:"%s" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/--*/-/g; s/^-//; s/-$//' | cut -c1-60)
+REPORT_FILE="${REPORT_DIR}/${TIMESTAMP}-${COMMIT_TITLE}.md"
 
 # Write commit context to a temp file (avoids shell injection via commit messages)
 CONTEXT_FILE=$(mktemp)
@@ -101,4 +103,4 @@ PROMPT
 # Fully detach the background process
 disown 2>/dev/null || true
 
-echo "Insights report generating in background -> .claude/reports/${TIMESTAMP}-${COMMIT_SHORT}.md"
+echo "Insights report generating in background -> .claude/reports/${TIMESTAMP}-${COMMIT_TITLE}.md"
