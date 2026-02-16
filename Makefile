@@ -246,12 +246,12 @@ hooks-install:
 	@git config core.hooksPath .githooks
 	@echo "Git hooks installed successfully!"
 
-# Uninstall git hooks
+# Uninstall git hooks (preserves tracked files like post-commit)
 hooks-uninstall:
 	@echo "Uninstalling git hooks..."
-	@git config --unset core.hooksPath
-	@rm -rf .githooks
-	@echo "Git hooks uninstalled."
+	@git config --unset core.hooksPath || true
+	@rm -f .githooks/pre-commit .githooks/pre-push
+	@echo "Git hooks uninstalled (post-commit preserved)."
 
 # Alias for hooks-install
 hooks: hooks-install

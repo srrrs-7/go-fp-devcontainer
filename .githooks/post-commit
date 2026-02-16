@@ -2,6 +2,11 @@
 # post-commit: Generate codebase insights report in background via claude -p
 # Reports are saved to .claude/reports/
 
+# Skip if explicitly disabled (e.g., SKIP_INSIGHTS=1 git commit ...)
+if [ "$SKIP_INSIGHTS" = "1" ]; then
+  exit 0
+fi
+
 # Skip if claude is not installed
 if ! command -v claude >/dev/null 2>&1; then
   exit 0
@@ -31,32 +36,37 @@ TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 COMMIT_SHORT=$(git rev-parse --short HEAD)
 REPORT_FILE="${REPORT_DIR}/${TIMESTAMP}-${COMMIT_SHORT}.md"
 
-# Gather commit context
-COMMIT_MSG=$(git log -1 --pretty=format:"%s")
-DIFF_STAT=$(git diff-tree --no-commit-id --stat -r HEAD)
-CHANGED_FILE_LIST=$(git diff-tree --no-commit-id --name-only -r HEAD)
+# Write commit context to a temp file (avoids shell injection via commit messages)
+CONTEXT_FILE=$(mktemp)
+cat > "$CONTEXT_FILE" <<EOF_CONTEXT
+## Commit Info
+- Message: $(git log -1 --pretty=format:"%s")
+- Hash: ${COMMIT_SHORT}
+- Changed files:
+$(git diff-tree --no-commit-id --stat -r HEAD)
+
+## File List
+$(git diff-tree --no-commit-id --name-only -r HEAD)
+EOF_CONTEXT
 
 # Run insights generation in background (fully detached)
 (
   export CLAUDE_INSIGHTS_RUNNING=1
   unset CLAUDECODE
 
-  claude -p "$(cat <<PROMPT
+  CONTEXT=$(cat "$CONTEXT_FILE")
+  rm -f "$CONTEXT_FILE"
+
+  claude -p "$(cat <<'PROMPT'
 You are analyzing a Go monorepo after a git commit. Generate a concise insights report in markdown.
 
-## Commit Info
-- Message: ${COMMIT_MSG}
-- Hash: ${COMMIT_SHORT}
-- Changed files:
-${DIFF_STAT}
+PROMPT
+)
+${CONTEXT}
 
-## File List
-${CHANGED_FILE_LIST}
-
-## Instructions
+$(cat <<'PROMPT'
 Read the changed files listed above and analyze them. Generate a report with these sections:
 
-# Insights Report: ${COMMIT_SHORT}
 ## Summary
 One paragraph summarizing what was changed and why.
 
@@ -81,8 +91,9 @@ Keep the report concise. Skip sections that have no findings.
 PROMPT
 )" --max-turns 10 --allowedTools "Read,Grep,Glob" > "$REPORT_FILE" 2>/dev/null
 
-  # Remove empty reports
-  if [ ! -s "$REPORT_FILE" ]; then
+  # Remove report if claude -p failed or output is empty/too small
+  CLAUDE_EXIT=$?
+  if [ $CLAUDE_EXIT -ne 0 ] || [ ! -s "$REPORT_FILE" ] || [ "$(wc -c < "$REPORT_FILE")" -lt 50 ]; then
     rm -f "$REPORT_FILE"
   fi
 ) >/dev/null 2>&1 &
