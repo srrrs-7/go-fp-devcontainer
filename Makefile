@@ -53,7 +53,7 @@ run-all: run-migrate
 #############
 # Container #
 #############
-.PHONY: cp check fmt vet lint cspell test tidy graph env
+.PHONY: cp check fmt fix vet lint cspell test tidy graph env
 
 cp:
 	cp compose.override.yaml.example compose.override.yaml
@@ -63,7 +63,7 @@ check: fmt vet lint cspell test
 # Run tests (requires DB: docker compose up -d db)
 test: atlas-apply
 	for mod in $(MODS); do \
-		(cd $$mod && go test ./...); \
+		(cd $$mod && go test -cover ./...); \
 	done
 
 tidy:
@@ -74,7 +74,12 @@ tidy:
 fmt:
 	for mod in $(MODS); do \
 		(cd $$mod && go fmt ./...); \
-	done	
+	done
+
+fix:
+	for mod in $(MODS); do \
+		(cd $$mod && go fix ./...); \
+	done
 
 vet:
 	for mod in $(MODS); do \
