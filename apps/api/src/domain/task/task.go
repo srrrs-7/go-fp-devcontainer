@@ -57,6 +57,16 @@ type Task struct {
 	Status      TaskStatus
 }
 
+// NewTask creates a new Task with the given properties.
+func NewTask(id TaskID, title TaskTitle, description TaskDescription, status TaskStatus) Task {
+	return Task{
+		ID:          id,
+		Title:       title,
+		Description: description,
+		Status:      status,
+	}
+}
+
 func (t Task) IsCompleted() bool {
 	return t.Status == TaskStatusCompleted
 }

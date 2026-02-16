@@ -26,12 +26,12 @@ func CreateTask(q db.Querier, ctx context.Context, cmd task.TaskCmd) types.Resul
 			},
 		),
 		func(t db.Task) task.Task {
-			return task.Task{
-				ID:          task.TaskID(t.ID),
-				Title:       task.TaskTitle(t.Title),
-				Description: task.TaskDescription(t.Description.String),
-				Status:      task.TaskStatus(t.Status),
-			}
+			return task.NewTask(
+				task.TaskID(t.ID),
+				task.TaskTitle(t.Title),
+				task.TaskDescription(t.Description.String),
+				task.TaskStatus(t.Status),
+			)
 		},
 	)
 }
@@ -62,12 +62,12 @@ func UpdateTask(q db.Querier, ctx context.Context, id task.TaskID, cmd task.Task
 			},
 		),
 		func(t db.Task) task.Task {
-			return task.Task{
-				ID:          task.TaskID(t.ID),
-				Title:       task.TaskTitle(t.Title),
-				Description: task.TaskDescription(t.Description.String),
-				Status:      task.TaskStatus(t.Status),
-			}
+			return task.NewTask(
+				task.TaskID(t.ID),
+				task.TaskTitle(t.Title),
+				task.TaskDescription(t.Description.String),
+				task.TaskStatus(t.Status),
+			)
 		},
 	)
 }

@@ -24,12 +24,12 @@ func FindTaskByID(q db.Querier, ctx context.Context, id task.TaskID) types.Resul
 			},
 		),
 		func(t db.Task) task.Task {
-			return task.Task{
-				ID:          task.TaskID(t.ID),
-				Title:       task.TaskTitle(t.Title),
-				Description: task.TaskDescription(t.Description.String),
-				Status:      task.TaskStatus(t.Status),
-			}
+			return task.NewTask(
+				task.TaskID(t.ID),
+				task.TaskTitle(t.Title),
+				task.TaskDescription(t.Description.String),
+				task.TaskStatus(t.Status),
+			)
 		},
 	)
 }
@@ -45,12 +45,12 @@ func FindAllTasks(q db.Querier, ctx context.Context) types.Result[[]task.Task, a
 		func(tasks []db.Task) []task.Task {
 			var result []task.Task
 			for _, t := range tasks {
-				result = append(result, task.Task{
-					ID:          task.TaskID(t.ID),
-					Title:       task.TaskTitle(t.Title),
-					Description: task.TaskDescription(t.Description.String),
-					Status:      task.TaskStatus(t.Status),
-				})
+				result = append(result, task.NewTask(
+					task.TaskID(t.ID),
+					task.TaskTitle(t.Title),
+					task.TaskDescription(t.Description.String),
+					task.TaskStatus(t.Status),
+				))
 			}
 			return result
 		},
