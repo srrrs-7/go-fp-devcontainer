@@ -50,6 +50,14 @@ run-all: run-migrate
 	@echo "Starting Web server..."
 	cd ${WEB_MOD}/src && go run ./cmd
 
+###############
+# Claude Code #
+###############
+.PHONY: claude
+
+claude:
+	claude --dangerously-skip-permissions
+
 #############
 # Container #
 #############
@@ -234,6 +242,7 @@ hooks-install:
 	@printf '#!/bin/sh\necho "Running pre-commit hooks..."\nmake fmt && make vet\n' > .githooks/pre-commit
 	@printf '#!/bin/sh\necho "Running pre-push hooks..."\nmake test\n' > .githooks/pre-push
 	@chmod +x .githooks/pre-commit .githooks/pre-push
+	@if [ -f .githooks/post-commit ]; then chmod +x .githooks/post-commit; fi
 	@git config core.hooksPath .githooks
 	@echo "Git hooks installed successfully!"
 
